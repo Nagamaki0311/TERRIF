@@ -1,3 +1,26 @@
+# TERRIF
+
+質問に答えると、何がどんな形で怖さにつながりやすいかを推定し、その傾向に合わせた短い読み物（体験）を組み立てる、実験的な診断サイト。静的なHTML/CSS/JS（ES Modules）で、回答は端末内でのみ処理し、外部へは送信しない。診断や医療行為ではない。
+
+- 公開: GitHub Pagesの「Deploy from a branch」（ルート）で公開できる。ビルド工程はない。
+- 起動: `node scripts/serve.mjs` を実行し、表示されたURLを開く。`?debug=1` で回答ごとの更新量を表示し、`?seed=文字列` で結果を再現できる。
+- 仕様: 診断エンジンは docs/engine.md、方針は docs/content_policy.md、校正は docs/calibration.md、研究は data/research/、デザインは design/decision.md。
+
+## コマンド
+
+| 目的 | コマンド |
+|---|---|
+| データの再生成 | `node scripts/build-questions.mjs && node scripts/build-elements.mjs && node scripts/build-fragments.mjs` |
+| データ整合性 | `node scripts/validate.mjs` |
+| 決定性 | `node scripts/determinism.mjs` |
+| シミュレーション | `node scripts/simulate.mjs --n=100000 --out=docs/validation/simulation.md --strict` |
+| レシピ・安全性 | `node scripts/recipes.mjs --strict` / `node scripts/safety.mjs` |
+| 感度分析 | `node scripts/sensitivity.mjs --out=docs/validation/sensitivity.md` |
+| ブラウザでの通し確認 | `node scripts/e2e.mjs`（Playwrightが必要） |
+| 文章の確認 | `node scripts/preview.mjs --who=3 --level=3` |
+
+以下は、このリポジトリの元になった開発テンプレート（project001）の説明。
+
 # project001
 
 Claude CodeによるAI開発OS。新規アプリ開発に共通する開発方針・タスク管理・レビュー手順をテンプレートとして提供する。

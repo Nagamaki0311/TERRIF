@@ -1,79 +1,79 @@
 # 擬似回答者シミュレーション結果
 
-生成: `node scripts/simulate.mjs --n=100000 --seed=1`（131.8秒）。
+生成: `node scripts/simulate.mjs --n=100000 --seed=1`（123.2秒）。
 内部整合性の検証であり、実際の恐怖反応との一致は示さない。
 
 ## 設問数
 
 | 指標 | 値 |
 |---|---|
-| 平均 | 32.1 |
-| 5% / 50% / 95% | 25 / 32 / 40 |
-| 安定条件で終了 | 90.6% |
-| 上限到達で終了 | 9.4% |
+| 平均 | 32.9 |
+| 5% / 50% / 95% | 26 / 33 / 40 |
+| 安定条件で終了 | 88.1% |
+| 上限到達で終了 | 11.9% |
 
 ## 回答者類型ごと
 
 | 類型 | 人数 | 平均設問数 | 次元の不確実性（平均sigma） |
 |---|---|---|---|
-| random | 70149 | 31.9 | 0.89 |
-| acquiescent | 2960 | 36.6 | 0.86 |
-| contrarian | 2972 | 31.3 | 0.88 |
-| uniform | 3013 | 34.5 | 0.89 |
-| single | 14809 | 31.9 | 0.90 |
-| tolerant | 3058 | 33.3 | 0.86 |
-| indifferent | 3039 | 31.6 | 0.92 |
+| random | 70037 | 32.6 | 0.89 |
+| tolerant | 3072 | 33.1 | 0.87 |
+| uniform | 3003 | 35.2 | 0.89 |
+| acquiescent | 2945 | 37.1 | 0.86 |
+| single | 14899 | 32.8 | 0.90 |
+| indifferent | 3010 | 32.9 | 0.92 |
+| contrarian | 3034 | 31.7 | 0.88 |
 
 ## 推定精度（潜在プロファイルとの比較）
 
 | 指標 | 値 |
 |---|---|
-| ランダム型: 推定1位が真の上位3に入る割合 | 81.5% |
-| ランダム型: 次元の順位相関（Spearman、平均） | 0.743 |
-| 単一テーマ型: 推定1位が真の対象と一致する割合 | 84.8% |
+| ランダム型: 推定1位が真の上位3に入る割合 | 81.4% |
+| ランダム型: 次元の順位相関（Spearman、平均） | 0.742 |
+| 単一テーマ型: 推定1位が真の対象と一致する割合 | 84.5% |
 
 ## 推定1位の次元の分布（偏りの確認）
 
-エントロピー 3.87 bit（一様なら 3.91）。最大シェア 10.6%。1位に一度もならない次元: なし。
+エントロピー 3.86 bit（一様なら 3.91）。最大シェア 11.1%。1位に一度もならない次元: なし。
 
 | 次元 | 人数 | 割合 |
 |---|---|---|
-| depth_vastness | 10572 | 10.6% |
-| chaos_cult_ritual | 8371 | 8.4% |
-| dark_enclosed | 8273 | 8.3% |
-| isolation_abandonment | 7684 | 7.7% |
-| tech_digital | 7552 | 7.6% |
-| contamination_decay | 7371 | 7.4% |
-| gaze_surveillance | 6841 | 6.8% |
-| bugs_animals | 6516 | 6.5% |
-| death_loss | 6084 | 6.1% |
-| medical_invasive | 5528 | 5.5% |
-| malice_social | 5322 | 5.3% |
-| supernatural | 5194 | 5.2% |
-| humanoid_face | 4994 | 5.0% |
-| self_dissolution | 4859 | 4.9% |
-| everyday_estrangement | 4839 | 4.8% |
+| depth_vastness | 11081 | 11.1% |
+| chaos_cult_ritual | 8351 | 8.4% |
+| tech_digital | 7867 | 7.9% |
+| contamination_decay | 7766 | 7.8% |
+| dark_enclosed | 7680 | 7.7% |
+| isolation_abandonment | 7468 | 7.5% |
+| gaze_surveillance | 7069 | 7.1% |
+| bugs_animals | 6154 | 6.2% |
+| supernatural | 6029 | 6.0% |
+| death_loss | 5741 | 5.7% |
+| self_dissolution | 5194 | 5.2% |
+| malice_social | 5147 | 5.1% |
+| medical_invasive | 5112 | 5.1% |
+| humanoid_face | 4807 | 4.8% |
+| everyday_estrangement | 4534 | 4.5% |
 
 ## 推定1位の仕組みの分布
 
 | 仕組み | 人数 | 割合 |
 |---|---|---|
-| explicitness | 10926 | 10.9% |
-| startle | 9247 | 9.2% |
-| ambiguity | 9096 | 9.1% |
-| control_loss | 8636 | 8.6% |
-| cognitive_unreliability | 8523 | 8.5% |
-| safe_zone_intrusion | 8366 | 8.4% |
-| norm_violation | 8106 | 8.1% |
-| authenticity | 7847 | 7.8% |
-| disgust | 7767 | 7.8% |
-| time_pressure | 7308 | 7.3% |
-| anticipation | 7173 | 7.2% |
-| self_reference | 7005 | 7.0% |
+| authenticity | 14371 | 14.4% |
+| ambiguity | 11602 | 11.6% |
+| explicitness | 11160 | 11.2% |
+| startle | 10948 | 10.9% |
+| disgust | 10821 | 10.8% |
+| norm_violation | 9068 | 9.1% |
+| cognitive_unreliability | 8261 | 8.3% |
+| anticipation | 5908 | 5.9% |
+| safe_zone_intrusion | 5723 | 5.7% |
+| time_pressure | 5103 | 5.1% |
+| control_loss | 4983 | 5.0% |
+| self_reference | 2052 | 2.1% |
 
 ## 設問の出題回数
 
 - 一度も出題されなかった設問: 0問
-- 最少 / 最多: 3 / 100000
-- 出題回数の少ない10問: q071(3), q041(5), q035(9), q072(10), q139(12), q151(18), q062(24), q057(39), q056(60), q047(61)
-- 出題回数の多い10問: q074(100000), q073(100000), q013(99998), q003(99996), q026(99962), q019(99945), q022(99944), q017(99942), q009(99931), q006(98595)
+- 最少 / 最多: 2 / 100000
+- 出題回数の少ない10問: q035(2), q151(3), q139(4), q047(6), q062(10), q057(12), q060(20), q056(24), q046(29), q037(35)
+- 出題回数の多い10問: q074(100000), q073(100000), q003(99999), q013(99997), q026(99938), q022(99930), q009(99907), q019(99882), q017(99864), q006(97642)

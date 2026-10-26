@@ -28,3 +28,26 @@ export function args() {
   }
   return out;
 }
+
+// ---- 擬似回答者（recipes.mjs / safety.mjs 共通） ----
+import { createSession } from '../src/engine/engine.js';
+import { rand1 } from '../src/engine/rng.js';
+
+const normalAt = (...p) => Math.sqrt(-2 * Math.log(1 - rand1(...p, 'u'))) * Math.cos(2 * Math.PI * rand1(...p, 'v'));
+
+/** whoごとに決まる潜在プロファイルから回答させ、診断結果を返す */
+export function runRespondent(d, who) {
+  const t = Object.fromEntries(d.dimensions.variables.map((v) => [v.id, normalAt(who, v.id) * 0.9]));
+  const s = createSession(d, `r-${who}`);
+  for (let q = s.next(); q; q = s.next()) {
+    if (rand1(who, q.id, 'dk') < 0.03) {
+      s.answer(q.id, 'DK');
+      continue;
+    }
+    let z = 0;
+    for (const [id, w] of Object.entries(q.loadings)) z += w * t[id];
+    const sc = z * 1.1 + normalAt(who, q.id) * 0.45;
+    s.answer(q.id, sc > 0.75 ? 'SA' : sc > 0.25 ? 'A' : sc > -0.25 ? 'N' : sc > -0.75 ? 'D' : 'SD');
+  }
+  return s.result();
+}

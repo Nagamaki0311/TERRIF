@@ -95,13 +95,36 @@ if (d.elements) {
   }
   if (d.fragments) {
     const F = d.fragments;
+    const SLOTS = new Set(['time', 'no', 'echo', 'ans']);
+    const lintText = (where, text) => {
+      for (const m of text.matchAll(/\{(\w+)\}/g)) if (!SLOTS.has(m[1])) err(`fragments: ${where} に未定義のスロット {${m[1]}}`);
+      if (/[\u0000-\u001f]/.test(text)) err(`fragments: ${where} に制御文字`);
+    };
     for (const t of themeIds) {
       for (const s of F.stages) {
         const list = F.themes[t]?.[s] ?? [];
         if (list.length < 3) err(`fragments: ${t}/${s} の断片が${list.length}件（3件以上が必要）`);
-        for (const f of list) if (![1, 2, 3].includes(f.lv)) err(`fragments: ${t}/${s} にlv不正`);
+        if (list.filter((f) => f.lv === 1).length < 2) err(`fragments: ${t}/${s} の強度1の断片が2件未満（弱設定の変化が出ない）`);
+        for (const f of list) {
+          if (![1, 2, 3].includes(f.lv)) err(`fragments: ${t}/${s} にlv不正`);
+          lintText(`${t}/${s}`, f.t);
+        }
       }
     }
+    for (const m of mechIds) {
+      for (const s of ['unease', 'certainty', 'violation']) {
+        const list = F.mechs[m]?.[s] ?? [];
+        if (list.length < 2) err(`fragments: 仕組み${m}/${s} の補助行が${list.length}件（2件以上が必要）`);
+        if (!list.some((f) => f.lv === 1)) err(`fragments: 仕組み${m}/${s} に強度1の行がない`);
+        for (const f of list) lintText(`${m}/${s}`, f.t);
+      }
+    }
+    for (const v of ['record', 'second', 'kaidan']) {
+      for (const k of ['open', 'close', ...F.stages]) if (!F.voices[v]?.[k]?.length) err(`fragments: 語り口${v}/${k} がない`);
+    }
+    for (const k of ['agree', 'disagree', 'after_agree', 'after_disagree']) if (!F.echo[k]?.length) err(`fragments: echo/${k} がない`);
+    for (const k of ['slow', 'sudden', 'loop']) if (!F.pace[k]?.length) err(`fragments: pace/${k} がない`);
+    for (const [k, list] of Object.entries({ ...F.echo, ...F.pace })) for (const x of list) lintText(`echo,pace/${k}`, x);
   }
 }
 

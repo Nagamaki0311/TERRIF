@@ -16,6 +16,14 @@ const MIN_LEVEL_MECH = { startle: 2, explicitness: 2, disgust: 2 };
 const techRefs = (mechResearch) =>
   techniques.filter((t) => t.status !== '採用しない' && t.mechanisms.includes(mechResearch)).map((t) => t.id);
 
+// 根拠の強さ（0〜1）。参照する技法・対象の確度が「中」以上の割合。結果の選択で重みをわずかに下げるのに使う（確度「低」を主にしない）
+const mechanisms = read('data/research/mechanisms.json').mechanisms;
+const level = (c) => (c === '高' ? 1 : c === '中' ? 0.7 : 0.3);
+const evidence = (mechResearch, refs) => {
+  const items = [mechanisms.find((m) => m.id === mechResearch)?.confidence, ...refs.map((r) => techniques.find((t) => t.id === r)?.confidence)].filter(Boolean);
+  return items.length ? +(items.reduce((a, c) => a + level(c), 0) / items.length).toFixed(2) : 0.3;
+};
+
 const lines = readFileSync(join(root, 'data/src/elements.txt'), 'utf8')
   .split('\n')
   .filter((l) => l.trim() && !l.startsWith('#'));
@@ -39,6 +47,7 @@ lines.forEach((line, i) => {
     pace: { slow, sudden, loop },
     media: media.split(',').map((m) => MEDIA[m]),
     refs: [byId[mech].research, ...techRefs(byId[mech].research)],
+    evidence: evidence(byId[mech].research, techRefs(byId[mech].research)),
   });
 });
 
@@ -52,6 +61,7 @@ for (const v of dims.filter((x) => x.kind === 'mech')) {
     blurb: v.desc,
     minLevel: MIN_LEVEL_MECH[v.id] ?? 1,
     refs: [v.research, ...techRefs(v.research)],
+    evidence: evidence(v.research, techRefs(v.research)),
   });
 }
 for (const v of dims.filter((x) => x.kind === 'theme')) {
@@ -64,6 +74,7 @@ for (const v of dims.filter((x) => x.kind === 'theme')) {
     blurb: v.desc,
     minLevel: 1,
     refs: fearObjects.filter((f) => f.axis_a === v.id).map((f) => f.id),
+    evidence: +(fearObjects.filter((f) => f.axis_a === v.id).reduce((a, f) => a + level(f.confidence), 0) / Math.max(1, fearObjects.filter((f) => f.axis_a === v.id).length)).toFixed(2),
   });
 }
 

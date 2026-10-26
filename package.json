@@ -1,0 +1,13 @@
+{
+  "name": "terrif",
+  "private": true,
+  "type": "module",
+  "description": "恐怖傾向の聞き取り調査（実験的な診断サイト）。依存パッケージなし。e2eのみPlaywrightが必要",
+  "scripts": {
+    "build:data": "node scripts/build-questions.mjs && node scripts/build-elements.mjs && node scripts/build-fragments.mjs",
+    "serve": "node scripts/serve.mjs",
+    "validate": "node scripts/validate.mjs",
+    "verify": "node scripts/validate.mjs && node scripts/determinism.mjs --n=1000 && node scripts/safety.mjs && node scripts/recipes.mjs --n=8000 --strict && node scripts/simulate.mjs --n=20000 --strict",
+    "e2e": "node scripts/e2e.mjs"
+  }
+}

@@ -43,7 +43,7 @@ M|説明のつかない出来事は、一つでも原因が示されるとほっ
 M|事故や怪我の映像は、細部まではっきり見えると落ち着かなくなる|怪我の映像が細部まで見えると落ち着かなくなること|映像,身体|explicitness:0.7,disgust:0.2,medical_invasive:0.2|明示的な描写への反応|映像の鮮明さへの好み
 M|手術や処置の様子は、説明で聞くより写真で見るほうが平気だ|処置を説明で聞くより写真で見るほうが平気なこと|医療,映像|explicitness:-0.5,pref_explicit:0.3,medical_invasive:-0.3|明示への耐性|視覚優位の傾向
 M|他人が運転する車に乗ると、ずっと道を見てしまう|他人の運転する車でずっと道を見ること|乗り物|control_need:0.7,control_loss:0.2|統制欲求|心配性や運転経験
-M|仕組みのわからない機械は、説明書を読むまで触らない|説明書を読むまで機械に触らないこと|機械|control_need:0.5,uncertainty_intol:0.4|統制欲求と不確実性への不耐性|慎重さ
+M|仕組みのわからない機械は、説明書を読むまで触らない|説明書を読むまで機械に触らないこと|機械|control_need:0.7,uncertainty_intol:0.4|統制欲求と不確実性への不耐性|慎重さ
 M|手元に使える手段が少ないときは、かえって冷静になれる|手段が少ないとかえって冷静になれること|状況|control_loss:-0.5,control_need:-0.4|統制喪失への耐性|状況への慣れ
 M|同じ形の建物が続く団地や住宅街を歩くと、同じ場所を回っている気がしてくる|同じ形の建物が続く街で同じ場所を回る気がすること|外出,反復|norm_violation:0.5,everyday_estrangement:0.3|反復による違和感|方向感覚の弱さ
 M|言葉遣いは丁寧なのに、返事の内容が少しずれている人と話すと、気になって仕方がない|丁寧なのに返事がずれている人が気になること|人,会話|norm_violation:0.7,humanoid_face:0.2|規範侵犯への敏感さ|会話の齟齬への嫌悪
@@ -73,8 +73,8 @@ M|絶叫マシンは、並んでいる時間も含めて楽しい|絶叫マシ�
 M|刺激の強い映像や音は、先に内容を知っておきたい|刺激の強い映像や音の内容を先に知っておきたいこと|映像,音|tolerance:-0.4,control_need:0.3,uncertainty_intol:0.2|刺激耐性と統制欲求|ネタバレへの考え方|{"label":"preview"}
 M|夜、わざと暗い道を選んで帰ることがある|わざと暗い道を選んで帰ること|夜,外出|sensation_seeking:0.5,tolerance:0.4,dark_enclosed:-0.3|刺激希求と暗所耐性|近道の選択
 M|実際に起きた事件の記録や、不可解な出来事の体験談を、読み物として好む|事件の記録や不可解な体験談を読み物として好むこと|読書|tolerance:0.5,sensation_seeking:0.4|娯楽としての選好|情報収集の関心
-M|映画やドラマは、ネタバレを先に知っておいたほうが安心できる|ネタバレを先に知っておいたほうが安心なこと|映像|control_need:0.4,uncertainty_intol:0.5|不確実性への不耐性|結末重視の好み|{"pair":{"with":"preview","rel":"same"}}
-M|古い建物や廃墟の写真を、つい見続けてしまう|古い建物や廃墟の写真を見続けてしまうこと|写真,古い建物|supernatural:0.3,everyday_estrangement:0.3,sensation_seeking:0.3|廃墟への惹かれ方|建築や歴史への関心|{"reinterpret":[{"if":{"q":"古い家や古びた神社","in":["D","SD"]},"scale":{"supernatural":0.3}}]}
+M|映画やドラマは、ネタバレを先に知っておいたほうが安心できる|ネタバレを先に知っておいたほうが安心なこと|映像|control_need:0.6,uncertainty_intol:0.7|不確実性への不耐性|結末重視の好み|{"pair":{"with":"preview","rel":"same"}}
+M|古い建物や廃墟の写真を、つい見続けてしまう|古い建物や廃墟の写真を見続けてしまうこと|写真,古い建物|supernatural:0.5,everyday_estrangement:0.4,sensation_seeking:0.4|廃墟への惹かれ方|建築や歴史への関心|{"reinterpret":[{"if":{"q":"古い家や古びた神社","in":["D","SD"]},"scale":{"supernatural":0.3}}]}
 P|家で過ごす時間のほとんどを、一人で過ごしている|家で過ごす時間のほとんどを一人で過ごしていること|生活|isolation_abandonment:0.1|生活状況（解釈の補正用）|同居の有無|{"flags":{"agree":{"lives_alone":true},"disagree":{"lives_alone":false}}}
 P|寝る時間は、日付が変わってからになることが多い|寝る時間が日付の変わった後になること|生活,夜|dark_enclosed:-0.1|生活状況（解釈の補正用）|仕事や学業の都合|{"flags":{"agree":{"night_owl":true},"disagree":{"night_owl":false}}}
 dark_enclosed|暗い部屋にいると、見えない範囲に何かがいる気がしてくる|暗い部屋で見えない範囲に何かがいる気がすること|暗所,想像|dark_enclosed:0.6,ambiguity:0.4,imagination:0.2|暗所と曖昧さの結合|想像力の豊かさ

@@ -752,7 +752,7 @@
     "機械"
    ],
    "loadings": {
-    "control_need": 0.5,
+    "control_need": 0.7,
     "uncertainty_intol": 0.4
    },
    "meta": {
@@ -1325,8 +1325,8 @@
     "映像"
    ],
    "loadings": {
-    "control_need": 0.4,
-    "uncertainty_intol": 0.5
+    "control_need": 0.6,
+    "uncertainty_intol": 0.7
    },
    "pair": {
     "with": "q068",
@@ -1348,9 +1348,9 @@
     "古い建物"
    ],
    "loadings": {
-    "supernatural": 0.3,
-    "everyday_estrangement": 0.3,
-    "sensation_seeking": 0.3
+    "supernatural": 0.5,
+    "everyday_estrangement": 0.4,
+    "sensation_seeking": 0.4
    },
    "reinterpret": [
     {

@@ -63,7 +63,7 @@ export function createSession(data, seed) {
   const zOf = (id) => {
     const v = vars.get(id);
     const c = calib?.[id];
-    return c ? (v.mu - c.mean) / Math.max(0.1, c.sd) : v.mu;
+    return c ? (v.mu - c.mean) / Math.max(P.sdFloor, c.sd) : v.mu;
   };
 
   const gateFactor = (id) => {
@@ -190,10 +190,14 @@ export function createSession(data, seed) {
   };
   const deepened = () => needDeepening().length === 0;
 
+  // 刺激耐性は結果の強度を決めるため、最低限の情報が付くまで終了しない（問える設問が尽きた場合を除く）
+  const toleranceMissing = () =>
+    vars.get('tolerance').sigma > P.toleranceSigma && questions.some((q) => q.loadings.tolerance && !answerOf.has(q.id));
+
   const isDone = () => {
     const n = answeredCount();
-    if (n >= P.maxQuestions || answers.length >= P.maxQuestions + 20) return true;
-    if (n >= P.minQuestions && signatures.length >= P.stableWindow && deepened()) {
+    if (n >= P.maxQuestions || answers.length >= P.maxQuestions + P.skipAllowance) return true;
+    if (n >= P.minQuestions && signatures.length >= P.stableWindow && deepened() && !toleranceMissing()) {
       const last = signatures.slice(-P.stableWindow);
       if (last.every((s) => s === last[0])) return true;
     }
@@ -255,6 +259,10 @@ export function createSession(data, seed) {
           .sort((x, y) => Math.abs(y.loadings[t]) * (1 + P.jitter * jitter(y)) - Math.abs(x.loadings[t]) * (1 + P.jitter * jitter(x)));
         if (cand.length) return cand[0];
       }
+    }
+    if (answeredCount() >= P.screenMax && toleranceMissing() && answers.length % 2 === 1) {
+      const tol = open.filter((q) => q.loadings.tolerance);
+      if (tol.length) return pickFrom(tol);
     }
     // 詳細設問が足りない間は、1問おきに上位次元の詳細設問へ寄せる（残りの回は仕組み・調整因子の設問に使う）
     const need = needDeepening();
