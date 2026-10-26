@@ -50,6 +50,7 @@
 | T-033 | レビュー費用の削減とデザイン表現の多様化 | 中 | 完了 | claude | REVIEW.mdにレビュー深さ（小/中/大）・観点の絞り込み・修正ループの絞り込みを追加、Designerに3案提示を義務化、design-principlesに表現の語彙を追加、UI実装にスクリーンショット照合を追加（D-032参照） |
 | T-034 | CLAUDE.md短縮・派生側CLAUDE.md雛形・コスト目安欄 | 中 | 完了 | claude | CLAUDE.mdのSkills/Capability Layer節を短縮、README初期化手順に派生側CLAUDE.mdの節追加を記載、progress.md記録フォーマットにコスト目安欄を追加（D-033参照） |
 | T-035 | PR作成からマージまでの自動化の雛形化 | 低 | 完了 | claude | 自動マージの条件付き雛形をdocs/agents.mdに記載、README初期化手順から参照。project001では有効化しない（D-034参照） |
+| T-036 | 恐怖傾向診断サイト Phase 1: 事前リサーチ | 高 | 調査中 | claude | 指示書の第3章。data/research/に一式を作成済みで、ユーザーの承認待ち。承認後にPhase 2（次元・データ設計）へ進む |
 
 ## バックログ（未着手・優先度未確定）
 
