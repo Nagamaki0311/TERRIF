@@ -1,0 +1,113 @@
+{
+ "_meta": "擬似回答者8000人（全次元が同程度に分布する仮定）から算出。scripts/calibrate.mjsで再生成",
+ "vars": {
+  "dark_enclosed": {
+   "mean": 0.0837,
+   "sd": 0.562
+  },
+  "depth_vastness": {
+   "mean": 0.1029,
+   "sd": 0.6103
+  },
+  "humanoid_face": {
+   "mean": 0.1294,
+   "sd": 0.6999
+  },
+  "gaze_surveillance": {
+   "mean": 0.0943,
+   "sd": 0.6081
+  },
+  "medical_invasive": {
+   "mean": 0.09,
+   "sd": 0.6608
+  },
+  "contamination_decay": {
+   "mean": 0.0933,
+   "sd": 0.5286
+  },
+  "bugs_animals": {
+   "mean": 0.0998,
+   "sd": 0.6379
+  },
+  "supernatural": {
+   "mean": 0.1196,
+   "sd": 0.6297
+  },
+  "death_loss": {
+   "mean": 0.1091,
+   "sd": 0.5684
+  },
+  "malice_social": {
+   "mean": 0.1106,
+   "sd": 0.6187
+  },
+  "self_dissolution": {
+   "mean": 0.1294,
+   "sd": 0.6799
+  },
+  "tech_digital": {
+   "mean": 0.0858,
+   "sd": 0.5056
+  },
+  "everyday_estrangement": {
+   "mean": 0.1205,
+   "sd": 0.6612
+  },
+  "isolation_abandonment": {
+   "mean": 0.1036,
+   "sd": 0.4781
+  },
+  "chaos_cult_ritual": {
+   "mean": 0.085,
+   "sd": 0.4834
+  },
+  "anticipation": {
+   "mean": 0.0263,
+   "sd": 0.3636
+  },
+  "startle": {
+   "mean": 0.0087,
+   "sd": 0.4805
+  },
+  "ambiguity": {
+   "mean": 0.0778,
+   "sd": 0.4492
+  },
+  "explicitness": {
+   "mean": 0.0207,
+   "sd": 0.4674
+  },
+  "control_loss": {
+   "mean": 0.1296,
+   "sd": 0.2394
+  },
+  "norm_violation": {
+   "mean": 0.108,
+   "sd": 0.4039
+  },
+  "safe_zone_intrusion": {
+   "mean": 0.0642,
+   "sd": 0.3011
+  },
+  "self_reference": {
+   "mean": 0.0304,
+   "sd": 0.2494
+  },
+  "time_pressure": {
+   "mean": 0.0321,
+   "sd": 0.3564
+  },
+  "authenticity": {
+   "mean": 0.0061,
+   "sd": 0.496
+  },
+  "disgust": {
+   "mean": 0.1258,
+   "sd": 0.4435
+  },
+  "cognitive_unreliability": {
+   "mean": 0.1495,
+   "sd": 0.3601
+  }
+ }
+}
