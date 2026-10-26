@@ -51,6 +51,28 @@ check(/audio:\s*false/.test(app) && /effects:\s*false/.test(app) && /stinger:\s*
 check(/診断ではありません/.test(app) && /専門機関/.test(app), '導入に診断ではない旨と専門機関への案内がない');
 check(/disabled:\s*true/.test(app) && /consent/.test(app), '同意前に開始できてしまう');
 
+// --- 文字のコントラスト比（WCAG 4.5:1以上）。style.cssのトークンから計算する ---
+const css = read('src/ui/style.css');
+const lum = (hex) => {
+  const c = hex.match(/\w\w/g).map((x) => parseInt(x, 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+const ratio = (a, b) => {
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+const tokens = (block) => Object.fromEntries([...block.matchAll(/--([\w-]+):\s*#([0-9a-fA-F]{6})/g)].map((m) => [m[1], m[2]]));
+const light = tokens(css.match(/:root\s*\{([^}]*)\}/)[1]);
+const dark = { ...light, ...tokens(css.match(/prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^}]*)\}/)[1]) };
+for (const [name, t] of [['light', light], ['dark', dark]]) {
+  for (const bg of ['paper', 'paper-2']) for (const fg of ['ink', 'ink-2', 'stamp']) {
+    check(ratio(t[fg], t[bg]) >= 4.5, `コントラスト不足 ${name}: ${fg} on ${bg} = ${ratio(t[fg], t[bg]).toFixed(2)}`);
+  }
+}
+for (const fg of ['e6e2d6', 'b9b5a8', 'f0a597', 'e08a7a', 'c9c5b8']) {
+  check(css.includes('#' + fg) && ratio(fg, '12110f') >= 4.5, `コントラスト不足 体験: #${fg} on #12110f = ${ratio(fg, '12110f').toFixed(2)}`);
+}
+
 // --- 外部通信・危険なAPI ---
 for (const f of jsFiles) {
   const s = read(f);
