@@ -22,6 +22,26 @@
 
 ---
 
+## 2026-10-26 T-037〜T-039: 恐怖傾向診断サイトの実装（Phase 2〜7）
+
+### 実施内容
+- ユーザー不在の間、仕様判断を一任された（D-035、D-036）。次元構成はanalysis.md第4節の案を採用した。
+- Phase 2〜4: dimensions/coupling/questions（151問）、診断エンジン（src/engine/）、検証スクリプト一式（validate/simulate/determinism/sensitivity/calibrate）。
+- Phase 5〜6: 要素72、文章断片255と仕組みの補助行、レシピ選択（recipe.js）、文章の組み立て（text.js）、Canvasの映像（visual.js）、WebAudioの音（audio.js）、UI（index.html、src/ui/）。
+- Phase 7: recipes/safety/e2eスクリプト、docs/engine.md・content_policy.md・calibration.md・validation/、README・CLAUDE.mdの更新。
+
+### 結果
+- 擬似回答者100,000人: 全設問が出題され、推定1位の次元の最大シェアは10%台、平均設問数は約32（docs/validation/simulation.md）。
+- 決定性・データ整合性・安全性・レシピ（到達性、強度の遵守、類似度）の各検証が合格。Playwrightによる通し確認（モバイル・デスクトップ・動きを減らす設定）が合格。
+- 実際の恐怖反応との一致（妥当性）は未検証。設問と対象の対応、技法の効果量は研究でも裏付けが弱い。
+
+### 次回開始位置
+- 公開前に、評価データ（docs/calibration.md）で重みと標準化を更新する。
+- 未実装: 競合仮説の明示的な扱い、画像モデルの素材、評価データの送信。
+- 実機での目視確認（実際の端末・音・長時間の体験）は未実施。
+
+---
+
 ## 2026-10-26 T-036: 恐怖傾向診断サイト Phase 1 リサーチ
 
 ### 実施内容

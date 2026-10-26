@@ -1,0 +1,1788 @@
+{
+ "paces": [
+  "slow",
+  "sudden",
+  "loop"
+ ],
+ "forms": [
+  "text",
+  "visual",
+  "interaction"
+ ],
+ "elements": [
+  {
+   "id": "core.dark_enclosed.ambiguity",
+   "kind": "core",
+   "theme": "dark_enclosed",
+   "mech": "ambiguity",
+   "title": "見えない範囲に何かがいる",
+   "blurb": "暗い部屋の見えない範囲に、はっきりしない気配を置く。正体は最後まで示さない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.dark_enclosed.anticipation",
+   "kind": "core",
+   "theme": "dark_enclosed",
+   "mech": "anticipation",
+   "title": "消えた明かりの後",
+   "blurb": "明かりが落ちた後の静けさを引き延ばし、何も起きない時間そのものを使う。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.dark_enclosed.control_loss",
+   "kind": "core",
+   "theme": "dark_enclosed",
+   "mech": "control_loss",
+   "title": "出られない狭い場所",
+   "blurb": "狭く暗い場所で手段が一つずつ減っていく。直接の危害は描かない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
+   "id": "core.depth_vastness.ambiguity",
+   "kind": "core",
+   "theme": "depth_vastness",
+   "mech": "ambiguity",
+   "title": "底の見えない水",
+   "blurb": "足元の下に広がる、深さの分からない空間を見つめ続ける。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.depth_vastness.control_loss",
+   "kind": "core",
+   "theme": "depth_vastness",
+   "mech": "control_loss",
+   "title": "足場のない場所",
+   "blurb": "落ちる場面を描かずに、足場が頼りなくなっていく感覚だけを積み上げる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
+   "id": "core.depth_vastness.anticipation",
+   "kind": "core",
+   "theme": "depth_vastness",
+   "mech": "anticipation",
+   "title": "遠くの音が近づく",
+   "blurb": "広い空間の遠くで鳴る音が、少しずつ大きくなる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.humanoid_face.norm_violation",
+   "kind": "core",
+   "theme": "humanoid_face",
+   "mech": "norm_violation",
+   "title": "表情のずれた顔",
+   "blurb": "人の顔として何かが合っていない。どこが違うのかは言わない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 2
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.norm_violation",
+    "t07",
+    "t10",
+    "t12",
+    "t13",
+    "t14",
+    "t23",
+    "t44",
+    "t45",
+    "t46"
+   ],
+   "evidence": 0.5
+  },
+  {
+   "id": "core.humanoid_face.ambiguity",
+   "kind": "core",
+   "theme": "humanoid_face",
+   "mech": "ambiguity",
+   "title": "人形の置かれた部屋",
+   "blurb": "人の形をしたものが、動いたのかどうかを確定させない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.humanoid_face.safe_zone_intrusion",
+   "kind": "core",
+   "theme": "humanoid_face",
+   "mech": "safe_zone_intrusion",
+   "title": "家の中の知らない顔",
+   "blurb": "自分の家の中に、見覚えのない人型の何かが少しずつ増えていく。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.safe_zone_intrusion",
+    "t07",
+    "t09",
+    "t15",
+    "t17",
+    "t19",
+    "t28",
+    "t33",
+    "t37",
+    "t38",
+    "t40",
+    "t44",
+    "t48"
+   ],
+   "evidence": 0.39
+  },
+  {
+   "id": "core.gaze_surveillance.safe_zone_intrusion",
+   "kind": "core",
+   "theme": "gaze_surveillance",
+   "mech": "safe_zone_intrusion",
+   "title": "窓の向こうの視線",
+   "blurb": "自室の窓や暗い画面を通して、誰かに見られている感覚を作る。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.safe_zone_intrusion",
+    "t07",
+    "t09",
+    "t15",
+    "t17",
+    "t19",
+    "t28",
+    "t33",
+    "t37",
+    "t38",
+    "t40",
+    "t44",
+    "t48"
+   ],
+   "evidence": 0.39
+  },
+  {
+   "id": "core.gaze_surveillance.anticipation",
+   "kind": "core",
+   "theme": "gaze_surveillance",
+   "mech": "anticipation",
+   "title": "見られている間の静けさ",
+   "blurb": "視線の主を確かめる前の、動けない時間を使う。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.gaze_surveillance.self_reference",
+   "kind": "core",
+   "theme": "gaze_surveillance",
+   "mech": "self_reference",
+   "title": "あなたを見ている",
+   "blurb": "視線が受け手自身の行動を追っているように書く。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.self_reference",
+    "t03",
+    "t09",
+    "t28",
+    "t40"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.medical_invasive.control_loss",
+   "kind": "core",
+   "theme": "medical_invasive",
+   "mech": "control_loss",
+   "title": "動けない処置室",
+   "blurb": "処置を受ける側の、動けず状況を判断できない感覚を描く。傷の描写はしない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text"
+   ],
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
+   "id": "core.medical_invasive.anticipation",
+   "kind": "core",
+   "theme": "medical_invasive",
+   "mech": "anticipation",
+   "title": "名前を呼ばれるまで",
+   "blurb": "診察や検査の直前の待ち時間を、音と間で引き延ばす。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.medical_invasive.explicitness",
+   "kind": "core",
+   "theme": "medical_invasive",
+   "mech": "explicitness",
+   "title": "検査結果の記録",
+   "blurb": "診療記録のような文体で、体の異常を事務的に列挙する。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text"
+   ],
+   "refs": [
+    "mech.explicitness"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.contamination_decay.disgust",
+   "kind": "core",
+   "theme": "contamination_decay",
+   "mech": "disgust",
+   "title": "湿った空気",
+   "blurb": "湿り気、カビ、古い匂いなど、衛生に関わる手がかりを重ねる。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.disgust_contamination",
+    "t46",
+    "t47"
+   ],
+   "evidence": 0.43
+  },
+  {
+   "id": "core.contamination_decay.norm_violation",
+   "kind": "core",
+   "theme": "contamination_decay",
+   "mech": "norm_violation",
+   "title": "増えていく染み",
+   "blurb": "壁や物の染みが、見るたびに少しずつ形を変えている。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 2
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.norm_violation",
+    "t07",
+    "t10",
+    "t12",
+    "t13",
+    "t14",
+    "t23",
+    "t44",
+    "t45",
+    "t46"
+   ],
+   "evidence": 0.5
+  },
+  {
+   "id": "core.contamination_decay.explicitness",
+   "kind": "core",
+   "theme": "contamination_decay",
+   "mech": "explicitness",
+   "title": "崩れていくもの",
+   "blurb": "物の腐敗や崩壊を、結果と痕跡で具体的に示す。生体の描写は含めない。",
+   "minLevel": 3,
+   "pace": {
+    "slow": 1,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.explicitness"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.bugs_animals.disgust",
+   "kind": "core",
+   "theme": "bugs_animals",
+   "mech": "disgust",
+   "title": "壁の中のざわめき",
+   "blurb": "小さな生き物の気配が、壁や床の下で増えていく。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.disgust_contamination",
+    "t46",
+    "t47"
+   ],
+   "evidence": 0.43
+  },
+  {
+   "id": "core.bugs_animals.startle",
+   "kind": "core",
+   "theme": "bugs_animals",
+   "mech": "startle",
+   "title": "急に動くもの",
+   "blurb": "動いていないと思っていたものが、不意に動く。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 1,
+    "sudden": 3,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.startle",
+    "t21",
+    "t25",
+    "t27"
+   ],
+   "evidence": 0.6
+  },
+  {
+   "id": "core.bugs_animals.time_pressure",
+   "kind": "core",
+   "theme": "bugs_animals",
+   "mech": "time_pressure",
+   "title": "群れが近づく",
+   "blurb": "小さな生き物の群れが、確実にこちらへ広がってくる。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 1,
+    "sudden": 2,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.time_pressure",
+    "t22",
+    "t31"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.supernatural.ambiguity",
+   "kind": "core",
+   "theme": "supernatural",
+   "mech": "ambiguity",
+   "title": "説明のつかない寒気",
+   "blurb": "理由のない寒気や気配を、偶然とも言い切れない形で残す。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.supernatural.authenticity",
+   "kind": "core",
+   "theme": "supernatural",
+   "mech": "authenticity",
+   "title": "聞き取りの記録",
+   "blurb": "体験者から聞き取った記録の体裁で、説明のつかない出来事を並べる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text"
+   ],
+   "refs": [
+    "mech.authenticity",
+    "t01",
+    "t05",
+    "t06",
+    "t11",
+    "t17",
+    "t43"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.supernatural.anticipation",
+   "kind": "core",
+   "theme": "supernatural",
+   "mech": "anticipation",
+   "title": "何かが来る前の間",
+   "blurb": "何かが来ることだけが分かっていて、その時刻が示されない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.death_loss.ambiguity",
+   "kind": "core",
+   "theme": "death_loss",
+   "mech": "ambiguity",
+   "title": "残されたもの",
+   "blurb": "使われなくなった物の周りに、持ち主の気配だけが残る。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.death_loss.authenticity",
+   "kind": "core",
+   "theme": "death_loss",
+   "mech": "authenticity",
+   "title": "最後の記録",
+   "blurb": "残された日付、メモ、留守番電話の記録から、出来事を再構成する。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.authenticity",
+    "t01",
+    "t05",
+    "t06",
+    "t11",
+    "t17",
+    "t43"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.death_loss.safe_zone_intrusion",
+   "kind": "core",
+   "theme": "death_loss",
+   "mech": "safe_zone_intrusion",
+   "title": "いないはずの人の習慣",
+   "blurb": "自分の生活の中に、不在の人の習慣が混じり込む。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.safe_zone_intrusion",
+    "t07",
+    "t09",
+    "t15",
+    "t17",
+    "t19",
+    "t28",
+    "t33",
+    "t37",
+    "t38",
+    "t40",
+    "t44",
+    "t48"
+   ],
+   "evidence": 0.39
+  },
+  {
+   "id": "core.malice_social.safe_zone_intrusion",
+   "kind": "core",
+   "theme": "malice_social",
+   "mech": "safe_zone_intrusion",
+   "title": "家の周りの人影",
+   "blurb": "自宅の周りに、目的の分からない人影が現れる。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.safe_zone_intrusion",
+    "t07",
+    "t09",
+    "t15",
+    "t17",
+    "t19",
+    "t28",
+    "t33",
+    "t37",
+    "t38",
+    "t40",
+    "t44",
+    "t48"
+   ],
+   "evidence": 0.39
+  },
+  {
+   "id": "core.malice_social.control_loss",
+   "kind": "core",
+   "theme": "malice_social",
+   "mech": "control_loss",
+   "title": "ルールを知らされていない",
+   "blurb": "自分だけが場のルールを知らない状況に置かれる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
+   "id": "core.malice_social.time_pressure",
+   "kind": "core",
+   "theme": "malice_social",
+   "mech": "time_pressure",
+   "title": "遅れてついてくる足音",
+   "blurb": "同じ速さの足音が、距離を保ったままついてくる。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 1,
+    "sudden": 2,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.time_pressure",
+    "t22",
+    "t31"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.self_dissolution.cognitive_unreliability",
+   "kind": "core",
+   "theme": "self_dissolution",
+   "mech": "cognitive_unreliability",
+   "title": "覚えのない約束",
+   "blurb": "自分の記憶と記録が合わなくなる。どちらが正しいかは決めない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 2
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.cognitive_unreliability",
+    "t04",
+    "t32",
+    "t33",
+    "t48"
+   ],
+   "evidence": 0.46
+  },
+  {
+   "id": "core.self_dissolution.self_reference",
+   "kind": "core",
+   "theme": "self_dissolution",
+   "mech": "self_reference",
+   "title": "あなたの記憶",
+   "blurb": "受け手自身の回答や行動を引用し、記憶の確からしさを揺らす。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 2
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.self_reference",
+    "t03",
+    "t09",
+    "t28",
+    "t40"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.self_dissolution.norm_violation",
+   "kind": "core",
+   "theme": "self_dissolution",
+   "mech": "norm_violation",
+   "title": "鏡の中の違い",
+   "blurb": "鏡や写真の中の自分に、小さな違いが見つかる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 2
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.norm_violation",
+    "t07",
+    "t10",
+    "t12",
+    "t13",
+    "t14",
+    "t23",
+    "t44",
+    "t45",
+    "t46"
+   ],
+   "evidence": 0.5
+  },
+  {
+   "id": "core.tech_digital.safe_zone_intrusion",
+   "kind": "core",
+   "theme": "tech_digital",
+   "mech": "safe_zone_intrusion",
+   "title": "届くはずのない通知",
+   "blurb": "自分の端末に、覚えのない記録や通知が現れる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.safe_zone_intrusion",
+    "t07",
+    "t09",
+    "t15",
+    "t17",
+    "t19",
+    "t28",
+    "t33",
+    "t37",
+    "t38",
+    "t40",
+    "t44",
+    "t48"
+   ],
+   "evidence": 0.39
+  },
+  {
+   "id": "core.tech_digital.authenticity",
+   "kind": "core",
+   "theme": "tech_digital",
+   "mech": "authenticity",
+   "title": "ログの記録",
+   "blurb": "システムログや管理画面の体裁で、異常を淡々と並べる。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.authenticity",
+    "t01",
+    "t05",
+    "t06",
+    "t11",
+    "t17",
+    "t43"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.tech_digital.self_reference",
+   "kind": "core",
+   "theme": "tech_digital",
+   "mech": "self_reference",
+   "title": "あなたの端末",
+   "blurb": "受け手の画面や時刻を参照して、異常を自分事にする。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.self_reference",
+    "t03",
+    "t09",
+    "t28",
+    "t40"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.everyday_estrangement.norm_violation",
+   "kind": "core",
+   "theme": "everyday_estrangement",
+   "mech": "norm_violation",
+   "title": "見慣れた場所の違い",
+   "blurb": "いつもの場所の、一か所だけが違っている。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 0,
+    "loop": 3
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.norm_violation",
+    "t07",
+    "t10",
+    "t12",
+    "t13",
+    "t14",
+    "t23",
+    "t44",
+    "t45",
+    "t46"
+   ],
+   "evidence": 0.5
+  },
+  {
+   "id": "core.everyday_estrangement.cognitive_unreliability",
+   "kind": "core",
+   "theme": "everyday_estrangement",
+   "mech": "cognitive_unreliability",
+   "title": "同じ廊下",
+   "blurb": "同じ景色が繰り返され、時間と場所の感覚が崩れていく。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 0,
+    "loop": 3
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.cognitive_unreliability",
+    "t04",
+    "t32",
+    "t33",
+    "t48"
+   ],
+   "evidence": 0.46
+  },
+  {
+   "id": "core.everyday_estrangement.anticipation",
+   "kind": "core",
+   "theme": "everyday_estrangement",
+   "mech": "anticipation",
+   "title": "夜の無人の建物",
+   "blurb": "人のいなくなった建物で、何も起きない時間を長く保つ。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.isolation_abandonment.anticipation",
+   "kind": "core",
+   "theme": "isolation_abandonment",
+   "mech": "anticipation",
+   "title": "誰も来ない夜",
+   "blurb": "一人の夜に、物音と静けさだけで時間を進める。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.isolation_abandonment.ambiguity",
+   "kind": "core",
+   "theme": "isolation_abandonment",
+   "mech": "ambiguity",
+   "title": "隣の部屋の気配",
+   "blurb": "人がいるともいないとも言えない、隣の部屋の気配。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.isolation_abandonment.control_loss",
+   "kind": "core",
+   "theme": "isolation_abandonment",
+   "mech": "control_loss",
+   "title": "連絡のつかない場所",
+   "blurb": "連絡手段が一つずつ失われていく。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
+   "id": "core.chaos_cult_ritual.authenticity",
+   "kind": "core",
+   "theme": "chaos_cult_ritual",
+   "mech": "authenticity",
+   "title": "しきたりの聞き書き",
+   "blurb": "由来の分からないしきたりを、土地の聞き書きの形で記録する。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text"
+   ],
+   "refs": [
+    "mech.authenticity",
+    "t01",
+    "t05",
+    "t06",
+    "t11",
+    "t17",
+    "t43"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "core.chaos_cult_ritual.norm_violation",
+   "kind": "core",
+   "theme": "chaos_cult_ritual",
+   "mech": "norm_violation",
+   "title": "そろった動き",
+   "blurb": "全員が同じ動きをしている。理由は示されない。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 2
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.norm_violation",
+    "t07",
+    "t10",
+    "t12",
+    "t13",
+    "t14",
+    "t23",
+    "t44",
+    "t45",
+    "t46"
+   ],
+   "evidence": 0.5
+  },
+  {
+   "id": "core.chaos_cult_ritual.time_pressure",
+   "kind": "core",
+   "theme": "chaos_cult_ritual",
+   "mech": "time_pressure",
+   "title": "決められた時刻",
+   "blurb": "決められた時刻に向けて、人が集まってくる。",
+   "minLevel": 2,
+   "pace": {
+    "slow": 1,
+    "sudden": 2,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "interaction"
+   ],
+   "refs": [
+    "mech.time_pressure",
+    "t22",
+    "t31"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.m.anticipation",
+   "kind": "support",
+   "theme": null,
+   "mech": "anticipation",
+   "title": "予期（じわじわ）の補強",
+   "blurb": "来ると分かっていて来ない時間",
+   "minLevel": 1,
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "sup.m.startle",
+   "kind": "support",
+   "theme": null,
+   "mech": "startle",
+   "title": "驚愕（突発）の補強",
+   "blurb": "直前の安全から急に変わること",
+   "minLevel": 2,
+   "refs": [
+    "mech.startle",
+    "t21",
+    "t25",
+    "t27"
+   ],
+   "evidence": 0.6
+  },
+  {
+   "id": "sup.m.ambiguity",
+   "kind": "support",
+   "theme": null,
+   "mech": "ambiguity",
+   "title": "曖昧さ（見せない）の補強",
+   "blurb": "正体を確定させない",
+   "minLevel": 1,
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "sup.m.explicitness",
+   "kind": "support",
+   "theme": null,
+   "mech": "explicitness",
+   "title": "明示（見せる）の補強",
+   "blurb": "具体的に提示する",
+   "minLevel": 2,
+   "refs": [
+    "mech.explicitness"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.m.control_loss",
+   "kind": "support",
+   "theme": null,
+   "mech": "control_loss",
+   "title": "統制喪失・無力の補強",
+   "blurb": "手段や選択肢が尽きていく",
+   "minLevel": 1,
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
+   "id": "sup.m.norm_violation",
+   "kind": "support",
+   "theme": null,
+   "mech": "norm_violation",
+   "title": "規範侵犯の補強",
+   "blurb": "あるはずのないものがある",
+   "minLevel": 1,
+   "refs": [
+    "mech.norm_violation",
+    "t07",
+    "t10",
+    "t12",
+    "t13",
+    "t14",
+    "t23",
+    "t44",
+    "t45",
+    "t46"
+   ],
+   "evidence": 0.5
+  },
+  {
+   "id": "sup.m.safe_zone_intrusion",
+   "kind": "support",
+   "theme": null,
+   "mech": "safe_zone_intrusion",
+   "title": "安全圏の侵入の補強",
+   "blurb": "自室・家族・自分の端末に入り込む",
+   "minLevel": 1,
+   "refs": [
+    "mech.safe_zone_intrusion",
+    "t07",
+    "t09",
+    "t15",
+    "t17",
+    "t19",
+    "t28",
+    "t33",
+    "t37",
+    "t38",
+    "t40",
+    "t44",
+    "t48"
+   ],
+   "evidence": 0.39
+  },
+  {
+   "id": "sup.m.self_reference",
+   "kind": "support",
+   "theme": null,
+   "mech": "self_reference",
+   "title": "自己関与の補強",
+   "blurb": "二人称・名指し・回答の引用",
+   "minLevel": 1,
+   "refs": [
+    "mech.self_reference",
+    "t03",
+    "t09",
+    "t28",
+    "t40"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.m.time_pressure",
+   "kind": "support",
+   "theme": null,
+   "mech": "time_pressure",
+   "title": "時間の圧力の補強",
+   "blurb": "近づく・迫る・間に合わない",
+   "minLevel": 1,
+   "refs": [
+    "mech.time_pressure",
+    "t22",
+    "t31"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.m.authenticity",
+   "kind": "support",
+   "theme": null,
+   "mech": "authenticity",
+   "title": "真実性の錯覚の補強",
+   "blurb": "実話・記録・報告書の体裁",
+   "minLevel": 1,
+   "refs": [
+    "mech.authenticity",
+    "t01",
+    "t05",
+    "t06",
+    "t11",
+    "t17",
+    "t43"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.m.disgust",
+   "kind": "support",
+   "theme": null,
+   "mech": "disgust",
+   "title": "嫌悪・感染の補強",
+   "blurb": "汚染や感染を連想させる手がかり",
+   "minLevel": 2,
+   "refs": [
+    "mech.disgust_contamination",
+    "t46",
+    "t47"
+   ],
+   "evidence": 0.43
+  },
+  {
+   "id": "sup.m.cognitive_unreliability",
+   "kind": "support",
+   "theme": null,
+   "mech": "cognitive_unreliability",
+   "title": "認知の信頼低下の補強",
+   "blurb": "自分の記憶・知覚・時間感覚が当てにならない",
+   "minLevel": 1,
+   "refs": [
+    "mech.cognitive_unreliability",
+    "t04",
+    "t32",
+    "t33",
+    "t48"
+   ],
+   "evidence": 0.46
+  },
+  {
+   "id": "sup.t.dark_enclosed",
+   "kind": "support",
+   "theme": "dark_enclosed",
+   "mech": null,
+   "title": "暗所・閉鎖空間の気配",
+   "blurb": "暗がりや狭い空間に潜む見えないもの",
+   "minLevel": 1,
+   "refs": [
+    "fo.darkness",
+    "fo.enclosed_space",
+    "fo.buried_alive",
+    "fo.elevator_tunnel",
+    "fo.loud_sound"
+   ],
+   "evidence": 0.46
+  },
+  {
+   "id": "sup.t.depth_vastness",
+   "kind": "support",
+   "theme": "depth_vastness",
+   "mech": null,
+   "title": "深さ・広大さの気配",
+   "blurb": "深海・宇宙・高所など、足場や果てのない空間",
+   "minLevel": 1,
+   "refs": [
+    "fo.height",
+    "fo.deep_water",
+    "fo.storm",
+    "fo.vast_space",
+    "fo.flying_transport"
+   ],
+   "evidence": 0.68
+  },
+  {
+   "id": "sup.t.humanoid_face",
+   "kind": "support",
+   "theme": "humanoid_face",
+   "mech": null,
+   "title": "人型・顔の気配",
+   "blurb": "人に似て非なる形、表情のない顔",
+   "minLevel": 1,
+   "refs": [
+    "fo.doll_humanoid",
+    "fo.face_mask",
+    "fo.clown_costume"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.gaze_surveillance",
+   "kind": "support",
+   "theme": "gaze_surveillance",
+   "mech": null,
+   "title": "視線・監視の気配",
+   "blurb": "見られている感覚、誰かの視線の気配",
+   "minLevel": 1,
+   "refs": [
+    "fo.being_watched"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.medical_invasive",
+   "kind": "support",
+   "theme": "medical_invasive",
+   "mech": null,
+   "title": "医療・身体侵襲の気配",
+   "blurb": "針・処置・検査など体への介入",
+   "minLevel": 1,
+   "refs": [
+    "fo.blood",
+    "fo.needle",
+    "fo.dental_medical",
+    "fo.body_change",
+    "fo.choking_vomiting"
+   ],
+   "evidence": 0.62
+  },
+  {
+   "id": "sup.t.contamination_decay",
+   "kind": "support",
+   "theme": "contamination_decay",
+   "mech": null,
+   "title": "汚染・腐敗の気配",
+   "blurb": "汚れ・腐り・湿り気・崩れていくもの",
+   "minLevel": 1,
+   "refs": [
+    "fo.contamination",
+    "fo.parasite_infestation",
+    "fo.trypophobia_pattern"
+   ],
+   "evidence": 0.43
+  },
+  {
+   "id": "sup.t.bugs_animals",
+   "kind": "support",
+   "theme": "bugs_animals",
+   "mech": null,
+   "title": "虫・動物の気配",
+   "blurb": "小さなものの群れ、予測できない動き",
+   "minLevel": 1,
+   "refs": [
+    "fo.spider",
+    "fo.insect",
+    "fo.snake",
+    "fo.dog"
+   ],
+   "evidence": 0.77
+  },
+  {
+   "id": "sup.t.supernatural",
+   "kind": "support",
+   "theme": "supernatural",
+   "mech": null,
+   "title": "超常・霊の気配",
+   "blurb": "説明のつかない存在や場所の気配",
+   "minLevel": 1,
+   "refs": [
+    "fo.ghost"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.death_loss",
+   "kind": "support",
+   "theme": "death_loss",
+   "mech": null,
+   "title": "死・喪失の気配",
+   "blurb": "不在になった人や物の痕跡",
+   "minLevel": 1,
+   "refs": [
+    "fo.decay_corpse",
+    "fo.death_loss"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.malice_social",
+   "kind": "support",
+   "theme": "malice_social",
+   "mech": null,
+   "title": "他者の悪意・社会の気配",
+   "blurb": "見知らぬ他者、集団の中の疎外",
+   "minLevel": 1,
+   "refs": [
+    "fo.crowd",
+    "fo.malice",
+    "fo.status_loss"
+   ],
+   "evidence": 0.43
+  },
+  {
+   "id": "sup.t.self_dissolution",
+   "kind": "support",
+   "theme": "self_dissolution",
+   "mech": null,
+   "title": "自己認識の崩壊の気配",
+   "blurb": "記憶・現実・同一性が揺らぐこと",
+   "minLevel": 1,
+   "refs": [
+    "fo.identity_loss"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.tech_digital",
+   "kind": "support",
+   "theme": "tech_digital",
+   "mech": null,
+   "title": "テクノロジー・デジタルの気配",
+   "blurb": "端末・通知・記録に起こる異常",
+   "minLevel": 1,
+   "refs": [
+    "fo.digital_intrusion"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.everyday_estrangement",
+   "kind": "support",
+   "theme": "everyday_estrangement",
+   "mech": null,
+   "title": "日常の異化の気配",
+   "blurb": "見慣れた場所が見慣れないものに変わること",
+   "minLevel": 1,
+   "refs": [
+    "fo.liminal_space",
+    "fo.repetition_pattern"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.isolation_abandonment",
+   "kind": "support",
+   "theme": "isolation_abandonment",
+   "mech": null,
+   "title": "孤立・遺棄の気配",
+   "blurb": "誰もいない、誰も来ない状態",
+   "minLevel": 1,
+   "refs": [
+    "fo.abandonment"
+   ],
+   "evidence": 0.3
+  },
+  {
+   "id": "sup.t.chaos_cult_ritual",
+   "kind": "support",
+   "theme": "chaos_cult_ritual",
+   "mech": null,
+   "title": "無秩序・儀式の気配",
+   "blurb": "意味の分からない規則と集団の動き",
+   "minLevel": 1,
+   "refs": [
+    "fo.cult_ritual"
+   ],
+   "evidence": 0.3
+  }
+ ]
+}
