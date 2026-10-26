@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "note": "mechanism = 恐怖が成立する仕組み。軸B（提示のされ方）の候補。descriptionは自作の要約。confidenceは仕組みの存在に対する根拠の強さ（高/中/低）",
+    "confidence_rule": "査読論文で支持されるものは中〜高。批評・実務知識のみのものは低〜中"
+  },
+  "mechanisms": [
+    {"id": "mech.anticipation", "name": "予期（持続的な不安）", "description": "脅威が来ると分かっているが時期や形が定まらない状態を長く保つ。短い反応より長く残る緊張を作る。", "basis": "Davisらの持続的恐怖（sustained fear）。ラット・ヒト実験の知見をホラー体験へ類推している", "source_ids": ["S06", "S19"], "confidence": "中", "caveat": "実験は電気ショックの予告で行われており、物語や映像への当てはめは類推"},
+    {"id": "mech.startle", "name": "驚愕（突発）", "description": "直前まで安全に見える状況から急な刺激で反射的な反応を起こす。時間的に近接した確実な脅威への短い反応。", "basis": "phasic fear、驚愕反射の研究", "source_ids": ["S06", "S19"], "confidence": "中", "caveat": "反射は慣れやすく、同じ手法の反復で効果が落ちると考えられるが、本調査では根拠資料を取得していない"},
+    {"id": "mech.ambiguity", "name": "曖昧さ（見せない）", "description": "脅威の正体や範囲を確定させず、受け手の想像に補わせる。", "basis": "未知への恐怖、不確実性への不耐性、Jentschの知的不確実性", "source_ids": ["S04", "S05", "S13"], "confidence": "中", "caveat": "「見せないほうが怖い」という一般則を直接検証した資料は今回取得できていない。個人差（想像傾向、不確実性への不耐性）に依存する可能性が高い"},
+    {"id": "mech.explicitness", "name": "明示（見せる）", "description": "脅威の姿や被害を具体的に提示する。曖昧さとは受け手の負荷のかかり方が異なり、嫌悪反応と結びつきやすい。", "basis": "Carrollのart-horror（恐怖と嫌悪の複合）、Clasenの感染手がかり", "source_ids": ["S11", "S14"], "confidence": "低", "caveat": "明示が恐怖を強めるか弱めるかは個人と文脈で逆転しうる。本サイトは強度上限により直接描写を制限する"},
+    {"id": "mech.control_loss", "name": "統制喪失・無力", "description": "状況を操作できない、逃げられない、手段が尽きるといった感覚を作る。", "basis": "ゲーム設計の言説（資源制限、無力感）。学術資料は今回取得できていない", "source_ids": [], "confidence": "低", "caveat": "ゲーム領域の検索結果は大半が解説記事・生成コンテンツで、経験的研究は確認できなかった"},
+    {"id": "mech.norm_violation", "name": "規範侵犯（あるはずのないものがある）", "description": "カテゴリーの境界を越える、あるべきものが欠ける、形が定まらないなど、世界の秩序に合わない対象を置く。", "basis": "Carrollの不純性（カテゴリー境界・矛盾・不完全・無形）、知覚ミスマッチ仮説", "source_ids": ["S07", "S14"], "confidence": "中", "caveat": "Carrollの理論には反例を挙げる批判がある（S14周辺）。不気味の谷そのものは条件付きの現象"},
+    {"id": "mech.safe_zone_intrusion", "name": "安全圏の侵入", "description": "自室、家族、自分の端末など、安全と思っていた場所に異常が現れる。馴染み深いものが異質に転じる構図。", "basis": "Freudのunheimlich（慣れ親しんだものの回帰）", "source_ids": ["S13"], "confidence": "中", "caveat": "精神分析的解釈で、実証的支持は別途必要"},
+    {"id": "mech.self_reference", "name": "自己関与（二人称・名指し）", "description": "受け手本人の行動や回答に言及し、対象を自分事にする。本サイトでは回答のエコーとして実装する。", "basis": "実話怪談の語りの実務知識、本プロジェクトの設計案", "source_ids": ["S22"], "confidence": "低", "caveat": "二人称が恐怖を強めるという実証は取得できていない。回答エコーは設計仮説で、Phase 7の評価データで検証する"},
+    {"id": "mech.time_pressure", "name": "時間の圧力", "description": "制限時間、接近する脅威、遅延の末の到来などで待てない状況を作る。", "basis": "ゲーム設計の言説", "source_ids": [], "confidence": "低", "caveat": "根拠資料が未取得"},
+    {"id": "mech.authenticity", "name": "真実性の錯覚（実話・記録風）", "description": "報告書、ログ、体験談、アナログ映像の質感などで実在の記録に見せる。現実性への要求が高い受け手ほど虚構の枠が崩れる。", "basis": "SCP形式・クリーピーパスタの研究、実話怪談の語り", "source_ids": ["S22", "S23"], "confidence": "低", "caveat": "形式の特徴は研究で記述されているが、恐怖を増す効果量を示した資料は取得できていない"},
+    {"id": "mech.disgust_contamination", "name": "嫌悪・感染", "description": "汚染、腐敗、体液、寄生などの手がかりで嫌悪反応を起こす。恐怖とは別系統の反応として扱う。", "basis": "Carrollは恐怖と嫌悪の複合とみなし、Clasenは感染を祖先環境の脅威領域に含める", "source_ids": ["S11", "S14"], "confidence": "中", "caveat": "章要旨と二次資料のみ確認。嫌悪が恐怖の別系統かどうかの検証資料は取得できていない"},
+    {"id": "mech.isolation", "name": "孤立・遺棄", "description": "助けが来ない、他者がいない、取り残されたという状況の提示。", "basis": "リミナルスペース言説、ゲーム設計の言説", "source_ids": ["S24"], "confidence": "低", "caveat": "出典は解説記事のみ"},
+    {"id": "mech.repetition", "name": "反復・過剰反復", "description": "見慣れた要素を過剰に繰り返す、場違いに置く、少しずつ変える。違和感の原因を特定させない。", "basis": "リミナルスペース言説（過剰反復、場違い、予期しない改変）", "source_ids": ["S24"], "confidence": "低", "caveat": "査読研究の裏付けなし。2022年の物理空間研究への言及があったが原典は未確認"},
+    {"id": "mech.cognitive_unreliability", "name": "認知・記憶の信頼低下", "description": "自分の記憶、知覚、時間感覚が当てにならないと思わせる。SAN値系ゲームの中心設計。", "basis": "Eternal Darkness、Amnesiaの設計記事", "source_ids": ["S17", "S18"], "confidence": "中", "caveat": "開発者の語りであり、プレイヤー側の効果検証ではない。Eternal Darknessの開発者は、効果が分かりやすくないと混乱を招くと述べている"}
+  ]
+}
