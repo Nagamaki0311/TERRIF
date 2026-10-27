@@ -16,6 +16,7 @@ export function loadData() {
     elements: optional('data/elements.json'),
     synergy: optional('data/synergy_matrix.json'),
     fragments: optional('data/text_fragments.json'),
+    scenes: optional('data/scenes.json'),
   };
 }
 

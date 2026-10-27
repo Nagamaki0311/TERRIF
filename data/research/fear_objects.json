@@ -4,6 +4,7 @@
   "axis_a_ids": [
    "dark_enclosed",
    "depth_vastness",
+   "deep_sea_giant",
    "humanoid_face",
    "gaze_surveillance",
    "medical_invasive",
@@ -84,7 +85,7 @@
    "name": "深い水・海の深み",
    "parent": "natural_environment",
    "related_phobia": "aquaphobia / thalassophobia（後者は通俗語）",
-   "axis_a": "depth_vastness",
+   "axis_a": "deep_sea_giant",
    "source_ids": [
     "S01",
     "S03"
@@ -445,6 +446,18 @@
    "axis_a": "chaos_cult_ritual",
    "source_ids": [],
    "confidence": "低"
+  },
+  {
+   "id": "fo.giant_creature",
+   "name": "巨大な生物・水中の大きな影",
+   "parent": "non_dsm",
+   "related_phobia": "thalassophobia（通俗語）",
+   "axis_a": "deep_sea_giant",
+   "source_ids": [
+    "S01"
+   ],
+   "confidence": "低",
+   "note": "第1回調査では独立した対象にしていなかった。実機テストで、海洋・水中の巨大生物を想定した回答が結果に反映されなかったため追加した（D-039）"
   }
  ]
 }

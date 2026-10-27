@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>素材の生成プロンプト（TERRIF）</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../src/ui/style.css">
+<style>
+  pre { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: .85rem; line-height: 1.6; background: var(--paper-2); border: 1px solid var(--rule); padding: .8rem; margin: .4rem 0; }
+  .asset { border-top: 1px solid var(--rule); padding: 1rem 0; }
+  .ok { color: var(--ink); } .ng { color: var(--stamp); }
+</style>
+</head>
+<body>
+<main id="main" tabindex="-1">
+  <article class="sheet">
+    <header><span class="tag">素材の生成プロンプト</span><span class="tag" id="count"></span></header>
+    <h1>Grok imagine 用プロンプト</h1>
+    <p>各プロンプトをコピーして生成し、画像を指定の場所へ保存してください。保存後に <code>node scripts/build-assets.mjs</code> を実行すると、サイトが素材を使います（無い素材はコード生成の代替で表示されます）。</p>
+    <ul class="small">
+      <li>16:9の横長（1920×1080程度）で生成する。スマホでは左右が切れるため、主題は中央に寄せる。</li>
+      <li>文字、透かし、実在の人物・作品・生物名は含めない。残酷な描写は含めない。</li>
+      <li>気に入らなければ、同じプロンプトを何度か生成して選ぶ。形式は jpg か png（拡張子は指定のファイル名のままにする）。</li>
+      <li>確認: <code>?preview=対象ID&amp;level=2</code>（例: <code>/?preview=deep_sea_giant&amp;level=3</code>）で、診断を飛ばして体験だけを再生できる。</li>
+    </ul>
+    <div id="list"><p class="loading">読み込み中…</p></div>
+  </article>
+</main>
+<script type="module">
+  const el = (t, a = {}, ...k) => { const e = document.createElement(t); for (const [x, v] of Object.entries(a)) x === 'class' ? (e.className = v) : e.setAttribute(x, v); e.append(...k); return e; };
+  const [scenes, manifest] = await Promise.all(['../data/scenes.json', 'manifest.json'].map((u) => fetch(u).then((r) => r.json())));
+  const have = new Set(manifest.files.map((f) => '../' + f));
+  const list = document.getElementById('list');
+  list.replaceChildren();
+  let total = 0, done = 0;
+  for (const s of scenes.scenes) {
+    list.append(el('h2', {}, `${s.title}（${s.id}）`));
+    for (const a of s.assets) {
+      total++;
+      const ok = have.has('../' + a.file);
+      if (ok) done++;
+      const status = el('span', { class: ok ? 'ok' : 'ng' }, ok ? '配置済み' : '未配置');
+      const btn = el('button', { class: 'btn', type: 'button' }, 'プロンプトをコピー');
+      btn.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(a.prompt); btn.textContent = 'コピーしました'; }
+        catch { btn.textContent = 'コピーできません。手動で選択してください'; }
+        setTimeout(() => (btn.textContent = 'プロンプトをコピー'), 2000);
+      });
+      list.append(el('div', { class: 'asset' },
+        el('strong', {}, a.id), ' ／ ', status,
+        el('p', { class: 'small' }, `用途: ${a.use}`),
+        el('p', { class: 'small' }, '保存先: ', el('code', {}, a.file)),
+        el('pre', {}, a.prompt), btn));
+    }
+  }
+  document.getElementById('count').textContent = `${done} / ${total} 配置済み`;
+</script>
+</body>
+</html>

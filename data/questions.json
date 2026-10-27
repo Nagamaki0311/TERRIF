@@ -48,7 +48,7 @@
     "暗所"
    ],
    "loadings": {
-    "depth_vastness": -0.7
+    "deep_sea_giant": -0.7
    },
    "meta": {
     "intent": "深さへの耐性（耐性側から測る）",
@@ -1503,7 +1503,7 @@
   },
   {
    "id": "q079",
-   "branch": "depth_vastness",
+   "branch": "deep_sea_giant",
    "phase": "detail",
    "text": "海の底や宇宙の果てを撮った映像を見ていると、画面から目が離せなくなる",
    "echo": "海の底や宇宙の映像から目が離せなくなること",
@@ -1512,7 +1512,8 @@
     "広大"
    ],
    "loadings": {
-    "depth_vastness": 0.5,
+    "deep_sea_giant": 0.5,
+    "depth_vastness": 0.3,
     "ambiguity": 0.3,
     "sensation_seeking": 0.2
    },
@@ -1523,7 +1524,7 @@
   },
   {
    "id": "q080",
-   "branch": "depth_vastness",
+   "branch": "deep_sea_giant",
    "phase": "detail",
    "text": "足がつかない深さの水の中では、体が固くなる",
    "echo": "足のつかない水の中で体が固くなること",
@@ -1531,11 +1532,11 @@
     "水"
    ],
    "loadings": {
-    "depth_vastness": 0.7,
+    "deep_sea_giant": 0.7,
     "control_loss": 0.3
    },
    "meta": {
-    "intent": "深さと統制喪失",
+    "intent": "水中での統制喪失",
     "alt": "水泳経験の差"
    }
   },
@@ -2883,6 +2884,140 @@
    "meta": {
     "intent": "反射的な身体反応",
     "alt": "睡眠不足"
+   }
+  },
+  {
+   "id": "q152",
+   "branch": "core",
+   "phase": "screen",
+   "text": "海や湖で泳いでいるとき、足元の暗い水の中に何かいる気がして脚を引く",
+   "echo": "足元の暗い水に何かいる気がして脚を引くこと",
+   "tags": [
+    "水",
+    "海",
+    "動物"
+   ],
+   "loadings": {
+    "deep_sea_giant": 0.8,
+    "ambiguity": 0.3
+   },
+   "meta": {
+    "intent": "水中の見えないものへの反応",
+    "alt": "水の冷たさへの反応"
+   }
+  },
+  {
+   "id": "q153",
+   "branch": "core",
+   "phase": "screen",
+   "text": "何もない広い野原や砂漠の真ん中に一人で立つ場面を想像すると、足がすくむ",
+   "echo": "何もない広い場所の真ん中で足がすくむこと",
+   "tags": [
+    "広大",
+    "想像"
+   ],
+   "loadings": {
+    "depth_vastness": 0.6,
+    "isolation_abandonment": 0.2
+   },
+   "meta": {
+    "intent": "広大な空間への反応",
+    "alt": "開放感への好み"
+   }
+  },
+  {
+   "id": "q154",
+   "branch": "deep_sea_giant",
+   "phase": "detail",
+   "text": "海の底を泳ぐ大きな生き物の映像は、画面越しでも体の大きさを想像して落ち着かなくなる",
+   "echo": "海の大きな生き物の体の大きさを想像して落ち着かなくなること",
+   "tags": [
+    "映像",
+    "海",
+    "想像"
+   ],
+   "loadings": {
+    "deep_sea_giant": 0.7,
+    "imagination": 0.2
+   },
+   "meta": {
+    "intent": "巨大な存在への想像",
+    "alt": "生き物への関心"
+   }
+  },
+  {
+   "id": "q155",
+   "branch": "deep_sea_giant",
+   "phase": "detail",
+   "text": "船の下を巨大な影がゆっくり横切っていく場面を想像すると、胸が重くなる",
+   "echo": "船の下を巨大な影が横切る場面で胸が重くなること",
+   "tags": [
+    "海",
+    "想像"
+   ],
+   "loadings": {
+    "deep_sea_giant": 0.7,
+    "anticipation": 0.3
+   },
+   "meta": {
+    "intent": "巨大な影と予期",
+    "alt": "想像の鮮明さ"
+   }
+  },
+  {
+   "id": "q156",
+   "branch": "deep_sea_giant",
+   "phase": "detail",
+   "text": "ダイビングで視界の悪い水の中を進むのは、むしろ楽しい",
+   "echo": "視界の悪い水の中を進むのが楽しいこと",
+   "tags": [
+    "海",
+    "水"
+   ],
+   "loadings": {
+    "deep_sea_giant": -0.6
+   },
+   "meta": {
+    "intent": "水中の見えなさへの耐性（反転項目）",
+    "alt": "ダイビング経験"
+   }
+  },
+  {
+   "id": "q157",
+   "branch": "depth_vastness",
+   "phase": "detail",
+   "text": "吊り橋や橋の真ん中で、足元の隙間が気になって速く渡りたくなる",
+   "echo": "橋の足元の隙間が気になって速く渡りたくなること",
+   "tags": [
+    "高所",
+    "橋"
+   ],
+   "loadings": {
+    "depth_vastness": 0.6,
+    "control_loss": 0.2
+   },
+   "meta": {
+    "intent": "足場のなさへの反応",
+    "alt": "歩く速さの癖"
+   }
+  },
+  {
+   "id": "q158",
+   "branch": "depth_vastness",
+   "phase": "detail",
+   "text": "広い空を見上げていると、自分が小さくなっていくような感覚になる",
+   "echo": "広い空を見上げて自分が小さくなる感覚になること",
+   "tags": [
+    "広大",
+    "空"
+   ],
+   "loadings": {
+    "depth_vastness": 0.5,
+    "ambiguity": 0.2
+   },
+   "meta": {
+    "intent": "広大さによる自己の縮小",
+    "alt": "詩的な感受性"
    }
   }
  ]

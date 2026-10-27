@@ -7,6 +7,8 @@ const FILES = {
   elements: 'data/elements.json',
   synergy: 'data/synergy_matrix.json',
   fragments: 'data/text_fragments.json',
+  scenes: 'data/scenes.json',
+  manifest: 'assets/manifest.json',
 };
 
 export async function loadData() {

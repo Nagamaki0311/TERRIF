@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { loadData, root } from './lib.mjs';
 import { SAFETY, TINT, LIGHT } from '../src/render/visual.js';
 import { AUDIO_SAFETY } from '../src/render/audio.js';
+import { SCENE_SAFETY } from '../src/render/scene.js';
 
 const errors = [];
 const check = (ok, msg) => !ok && errors.push(msg);
@@ -31,6 +32,12 @@ for (const [t, [hue, sat]] of Object.entries(TINT)) {
 }
 const visual = read('src/render/visual.js');
 check(!/hsla?\(\s*(0|35[0-9]|34\d)\s*,\s*(\d{2,3})\s*%/.test(visual) || false, '赤系の高彩度の色指定がある');
+
+// --- 視覚演出（シーン） ---
+check(SCENE_SAFETY.jumpSec >= 0.4, `突発の遷移が速すぎる: ${SCENE_SAFETY.jumpSec}秒`);
+check(SCENE_SAFETY.maxJumps <= 1, `突発の変化が1回を超える: ${SCENE_SAFETY.maxJumps}`);
+check(SCENE_SAFETY.driftSec >= 6, `画面の揺れの周期が短い: ${SCENE_SAFETY.driftSec}秒`);
+check(SCENE_SAFETY.grainAlphaMax <= 0.1 && SCENE_SAFETY.grainShiftMs >= 500, '粒子ノイズの設定が上限を超える');
 
 // --- 音 ---
 check(AUDIO_SAFETY.masterMax <= 0.35, `マスター音量の上限が高い: ${AUDIO_SAFETY.masterMax}`);

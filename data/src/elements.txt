@@ -4,7 +4,10 @@
 dark_enclosed|ambiguity|見えない範囲に何かがいる|暗い部屋の見えない範囲に、はっきりしない気配を置く。正体は最後まで示さない。|1|3,0,1|t,v
 dark_enclosed|anticipation|消えた明かりの後|明かりが落ちた後の静けさを引き延ばし、何も起きない時間そのものを使う。|1|3,1,1|t,v
 dark_enclosed|control_loss|出られない狭い場所|狭く暗い場所で手段が一つずつ減っていく。直接の危害は描かない。|1|2,1,1|t,i
-depth_vastness|ambiguity|底の見えない水|足元の下に広がる、深さの分からない空間を見つめ続ける。|1|3,0,1|t,v
+deep_sea_giant|ambiguity|底の見えない水|足元の下に広がる、深さの分からない水を見つめ続ける。|1|3,0,1|t,v
+deep_sea_giant|anticipation|水面の下を横切る影|水の中を、とても大きなものがゆっくり通り過ぎていく。|1|3,1,0|t,v
+deep_sea_giant|control_loss|沈んでいく|光が遠ざかり、浮かぶ手段がなくなっていく。|1|2,1,0|t,v
+depth_vastness|ambiguity|果ての見えない場所|何もない広い場所で、距離の感覚を失っていく。|1|3,0,1|t,v
 depth_vastness|control_loss|足場のない場所|落ちる場面を描かずに、足場が頼りなくなっていく感覚だけを積み上げる。|1|2,1,1|t,v
 depth_vastness|anticipation|遠くの音が近づく|広い空間の遠くで鳴る音が、少しずつ大きくなる。|1|3,1,0|t,v
 humanoid_face|norm_violation|表情のずれた顔|人の顔として何かが合っていない。どこが違うのかは言わない。|1|2,1,2|t,v

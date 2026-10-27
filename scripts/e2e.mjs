@@ -112,8 +112,33 @@ async function scenario(browser, name, viewport, { reduced = false } = {}) {
   await ctx.close();
 }
 
+// 視覚演出の確認用ページ: 診断を飛ばして体験を再生し、中止できる
+async function sceneScenario(browser, id) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  await page.goto(`${base}/?preview=${id}&level=3&pace=sudden`);
+  await page.waitForSelector('.exp canvas');
+  await page.waitForTimeout(3500);
+  await page.screenshot({ path: `${shots}/scene-${id}.png` });
+  const lit = await page.evaluate(() => {
+    const c = document.querySelector('.exp canvas');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let s = 0;
+    for (let i = 0; i < d.length; i += 4000) s += d[i] + d[i + 1] + d[i + 2];
+    return s;
+  });
+  check(lit > 0, `scene ${id}: 映像が描画されている`);
+  check(await page.locator('.exp-bar .stop').isVisible(), `scene ${id}: 中止ボタンが見える`);
+  check(errors.length === 0, `scene ${id}: コンソールエラーなし ${errors.join(' | ')}`);
+  await ctx.close();
+}
+
 const browser = await chromium.launch();
 try {
+  for (const id of ['deep_sea_giant', 'dark_enclosed', 'gaze_surveillance']) await sceneScenario(browser, id);
   await scenario(browser, 'mobile', { width: 390, height: 844 });
   await scenario(browser, 'desktop', { width: 1280, height: 800 });
   await scenario(browser, 'reduced', { width: 390, height: 844 }, { reduced: true });
