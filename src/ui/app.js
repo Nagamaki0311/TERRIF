@@ -236,8 +236,27 @@ function renderReport() {
   const story = composeStory(recipe, d.fragments, state.seed);
   state.report = { result, recipe, story };
 
-  const bars = (list, n) =>
-    h('ul', { class: 'bars' }, list.slice(0, n).map((t) => h('li', {}, h('div', { class: 'head' }, h('span', {}, t.name), h('span', { class: 'mono' }, certainty(t.sigma))), h('div', { class: 'track', role: 'img', 'aria-label': `${t.name}の強さ` }, h('div', { class: 'fill', style: `width:${Math.round(sigmoid(1.2 * t.z) * 100)}%` })))));
+  // 順位・0〜100の得点・段階を並べる。50は擬似回答者の平均的な水準で、得点の差がそのまま棒の長さの差になる
+  const desc = Object.fromEntries(d.dimensions.variables.map((v) => [v.id, v.desc]));
+  const score = (z) => Math.max(5, Math.min(99, Math.round(50 + 17 * z)));
+  const tier = (sc) => (sc >= 80 ? 'とても強い' : sc >= 65 ? '強い' : sc >= 50 ? 'やや強い' : '弱い');
+  const ranking = (list, n) =>
+    h(
+      'ol',
+      { class: 'rank' },
+      list.slice(0, n).map((t, i) => {
+        const sc = score(t.z);
+        return h(
+          'li',
+          { class: i === 0 ? 'top' : '' },
+          h('span', { class: 'no' }, String(i + 1)),
+          h('div', { class: 'body' }, h('strong', {}, t.name), h('span', { class: 'tier' }, tier(sc)), i === 0 ? h('p', { class: 'small' }, desc[t.id]) : null, h('div', { class: 'track', role: 'img', 'aria-label': `${t.name}: ${sc}点（${tier(sc)}）` }, h('div', { class: 'fill', style: `width:${sc}%` }), h('i', { class: 'mid', style: 'left:50%' }))),
+          h('span', { class: 'pt' }, String(sc)),
+        );
+      }),
+    );
+  const rest = (list, from) =>
+    h('details', {}, h('summary', {}, `ほかの項目を見る（${list.length - from}件）`), h('ul', { class: 'rest' }, list.slice(from).map((t) => h('li', {}, h('span', {}, t.name), h('span', { class: 'mono' }, String(score(t.z)))))));
   const traits = Object.entries(result.gates)
     .filter(([, g]) => Math.abs(g.factor - 1) >= 0.12)
     .map(([id, g]) => h('li', {}, GATE_LABEL[id][g.factor > 1 ? 0 : 1]));
@@ -264,9 +283,13 @@ function renderReport() {
       h('div', { class: 'note' }, h('span', {}, 'これは診断ではなく、回答から推定した傾向です。実験的なもので、当たることは保証されません。')),
       biased ? h('div', { class: 'note' }, h('span', {}, `回答が「${result.agreeRatio > 0.5 ? '当てはまる' : '当てはまらない'}」側に偏っていました。推定の確からしさは低めです。`)) : null,
       h('h2', {}, '反応しやすいと推定された対象'),
-      bars(result.themes, 4),
+      h('p', { class: 'small' }, '得点は0〜100で、50が平均的な水準です（現在は擬似的な基準で、利用者のデータで更新します）。差がそのまま棒の長さに出ます。'),
+      ranking(result.themes, 5),
+      rest(result.themes, 5),
       h('h2', {}, '強く出やすいと推定された提示のされ方'),
-      bars(result.mechs, 3),
+      ranking(result.mechs, 4),
+      rest(result.mechs, 4),
+      h('p', { class: 'small' }, `この推定の確からしさ: ${certainty(result.themes[0].sigma).replace('確からしさ: ', '')}`),
       traits.length ? h('div', {}, h('h2', {}, '回答から見えた特徴'), h('ul', {}, traits)) : null,
       h('h2', {}, '体験の内容（事前の要約）'),
       h(
