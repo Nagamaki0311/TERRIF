@@ -18,7 +18,7 @@ const INTERACTION_MECHS = new Set(['safe_zone_intrusion', 'time_pressure', 'self
 export function decideLevel(result, cap) {
   const tol = result.aux.tolerance;
   const known = tol.sigma < 0.95; // 刺激耐性の設問に最低限答えていない場合は最も弱い強度にする
-  const score = tol.mu + 0.5 * result.aux.sensation_seeking.mu;
+  const score = tol.mu + 0.25 * result.aux.sensation_seeking.mu; // 刺激希求と恐怖の関連は研究で一貫しない(S10, S25)ため重みを下げた
   // 閾値は擬似回答者の分布の約33%・67%点（simulate/recipes で再確認する。docs/calibration.md）
   const byTolerance = !known ? 1 : score > 0.5 ? 3 : score > -0.4 ? 2 : 1;
   return Math.min(cap, byTolerance);
