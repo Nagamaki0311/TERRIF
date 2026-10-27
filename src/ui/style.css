@@ -97,12 +97,24 @@ legend { padding: 0; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* 診断レポート */
-.bars { list-style: none; margin: 0; padding: 0; }
-.bars li { margin: .9rem 0; }
-.bars .head { display: flex; justify-content: space-between; gap: 1rem; font-size: 1rem; }
-.bars .track { height: 8px; background: var(--rule); margin-top: .25rem; position: relative; }
-.bars .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); }
-.bars .band { position: absolute; top: -3px; bottom: -3px; border-left: 1px solid var(--stamp); border-right: 1px solid var(--stamp); }
+.rank { list-style: none; margin: .8rem 0 1rem; padding: 0; }
+.rank li { display: grid; grid-template-columns: 1.6rem 1fr 2.8rem; gap: .3rem .6rem; align-items: start; margin: 1rem 0; opacity: .88; }
+.rank li.top { opacity: 1; padding: .8rem 0 .9rem; border-top: 2px solid var(--stamp); border-bottom: 1px solid var(--rule); }
+.rank .no { font-family: var(--mono); color: var(--ink-2); padding-top: .15rem; }
+.rank .body strong { font-size: 1.05rem; margin-right: .6rem; }
+.rank .top .body strong { font-size: 1.35rem; }
+.rank .tier { font-family: var(--mono); font-size: .75rem; color: var(--stamp); letter-spacing: .04em; }
+.rank .pt { font-family: var(--mono); font-size: 1.25rem; text-align: right; font-variant-numeric: tabular-nums; }
+.rank .top .pt { font-size: 2rem; line-height: 1.1; }
+.rank .body p { margin: .2rem 0 .4rem; }
+.track { height: 10px; background: var(--rule); margin-top: .35rem; position: relative; }
+.track .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink-2); }
+.rank .top .track { height: 14px; }
+.rank .top .fill { background: var(--stamp); }
+.track .mid { position: absolute; top: -3px; bottom: -3px; border-left: 1px dashed var(--ink); opacity: .55; }
+.rest { list-style: none; margin: .4rem 0 1rem; padding: 0; }
+.rest li { display: flex; justify-content: space-between; border-bottom: 1px solid var(--rule); padding: .35rem 0; }
+summary { cursor: pointer; font-family: var(--mono); font-size: .85rem; color: var(--ink-2); padding: .5rem 0; }
 .recipe { border: 1px solid var(--ink); padding: 1rem 1.2rem; margin: 1rem 0; background: var(--paper-2); }
 .recipe dl { display: grid; grid-template-columns: 6.5rem 1fr; gap: .4rem 1rem; margin: .8rem 0 0; }
 .recipe dt { font-family: var(--mono); font-size: .8rem; color: var(--ink-2); padding-top: .25rem; }
