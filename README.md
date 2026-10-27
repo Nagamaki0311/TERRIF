@@ -18,6 +18,7 @@
 | 感度分析 | `node scripts/sensitivity.mjs --out=docs/validation/sensitivity.md` |
 | ブラウザでの通し確認 | `node scripts/e2e.mjs`（Playwrightが必要） |
 | 文章の確認 | `node scripts/preview.mjs --who=3 --level=3` |
+| 素材の取り込み | `node scripts/build-assets.mjs`（生成プロンプトは `assets/prompts.html`、確認は `/?preview=deep_sea_giant&level=3`） |
 
 以下は、このリポジトリの元になった開発テンプレート（project001）の説明。
 

@@ -6,6 +6,7 @@ import { buildRecipe } from '../engine/recipe.js';
 import { composeStory } from '../render/text.js';
 import { runExperience } from './experience.js';
 import { shareSection } from './share.js';
+import { loadAssets } from '../render/scene.js';
 
 const params = new URLSearchParams(location.search);
 const DEBUG = params.get('debug') === '1';
@@ -292,14 +293,21 @@ function renderReport() {
 }
 
 // ===== SECTION: 体験 =====
-function startExperience() {
-  const { recipe, story } = state.report;
+async function startExperience(forced) {
+  const { recipe, story } = forced ?? state.report;
+  const def = state.data.scenes.scenes.find((s) => s.theme === recipe.core.theme);
+  let scene = null;
+  if (def) {
+    const assets = await loadAssets(def, state.data.manifest.files);
+    scene = { def, meta: state.data.scenes, assets };
+  }
   runExperience({
     recipe,
     story,
-    settings: state.settings,
+    scene,
+    settings: forced ? { audio: false, stinger: false, effects: false } : state.settings,
     reducedMotion: reducedMotion(),
-    onEnd: ({ reason }) => renderFeedback(reason),
+    onEnd: forced ? () => location.reload() : ({ reason }) => renderFeedback(reason),
   });
 }
 
@@ -394,6 +402,13 @@ async function boot() {
   } catch (e) {
     show('error', h('p', { class: 'note stamp' }, `データを読み込めませんでした。ページを再読み込みしてください。ファイルを直接開いている場合は、ターミナルで node scripts/serve.mjs を実行して表示されたURLを開いてください。（${e.message}）`));
     return;
+  }
+  // 素材の確認用: ?preview=シーンの対象ID&level=1〜3&pace=slow|sudden|loop で、診断を飛ばして体験だけを再生する
+  const pv = params.get('preview');
+  if (pv) {
+    const level = Math.min(3, Math.max(1, Number(params.get('level')) || 2));
+    const recipe = { seed: 'preview', level, pace: params.get('pace') || 'slow', core: { theme: pv, mech: 'anticipation' }, supports: [], echoes: [] };
+    return startExperience({ recipe, story: [] });
   }
   renderIntro();
 }

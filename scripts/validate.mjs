@@ -128,6 +128,31 @@ if (d.elements) {
   }
 }
 
+// --- 視覚演出（シーン） ---
+if (d.scenes) {
+  const S = d.scenes;
+  for (const sc of S.scenes) {
+    if (!themeIds.includes(sc.theme)) err(`scenes: ${sc.id} のthemeが未定義`);
+    const ids = new Set(sc.assets.map((a) => a.id));
+    for (const a of sc.assets) {
+      if (!a.prompt || !a.file || !a.use) err(`scenes: ${sc.id}/${a.id} にprompt/file/useがない`);
+      if (!a.file.startsWith(`assets/scenes/${sc.id}/`)) err(`scenes: ${sc.id}/${a.id} の保存先が assets/scenes/${sc.id}/ の外`);
+      if (/[A-Z]{3,} real|photo of [A-Z][a-z]+ [A-Z]/.test(a.prompt) || /gore|blood\b(?!\w)/.test(a.prompt.replace(/no gore, no blood/g, '').replace(/no gore/g, '').replace(/no blood/g, ''))) err(`scenes: ${sc.id}/${a.id} のプロンプトに方針外の語`);
+    }
+    for (const l of sc.layers) {
+      if (!ids.has(l.asset)) err(`scenes: ${sc.id} の層が未定義の素材 ${l.asset}`);
+      l.keys.forEach((k, i) => {
+        if (k.length < 6) err(`scenes: ${sc.id}/${l.asset} の鍵${i}が短い`);
+        if (i && k[0] <= l.keys[i - 1][0]) err(`scenes: ${sc.id}/${l.asset} の鍵の時刻が昇順でない`);
+        if (k[0] > S.end) err(`scenes: ${sc.id}/${l.asset} の鍵が終了時刻${S.end}を超える`);
+      });
+      if (l.keys.filter((k) => k[6]).length > 1) err(`scenes: ${sc.id}/${l.asset} の突発の鍵が2つ以上（1つまで）`);
+    }
+    if (sc.captions.length < 3 || sc.captions.length > 5) err(`scenes: ${sc.id} の字幕が3〜5件でない`);
+  }
+  for (const t of ['dark_enclosed', 'deep_sea_giant', 'gaze_surveillance']) if (!S.scenes.some((x) => x.theme === t)) err(`scenes: ${t} のシーンがない`);
+}
+
 if (errors.length) {
   console.error(`検証失敗: ${errors.length}件`);
   for (const e of errors) console.error(' - ' + e);

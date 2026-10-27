@@ -106,12 +106,107 @@
    "evidence": 0.38
   },
   {
+   "id": "core.deep_sea_giant.ambiguity",
+   "kind": "core",
+   "theme": "deep_sea_giant",
+   "mech": "ambiguity",
+   "title": "底の見えない水",
+   "blurb": "足元の下に広がる、深さの分からない水を見つめ続ける。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 0,
+    "loop": 1
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.ambiguity",
+    "t01",
+    "t02",
+    "t04",
+    "t10",
+    "t11",
+    "t15",
+    "t16",
+    "t18",
+    "t19",
+    "t30",
+    "t34",
+    "t38",
+    "t41",
+    "t42"
+   ],
+   "evidence": 0.35
+  },
+  {
+   "id": "core.deep_sea_giant.anticipation",
+   "kind": "core",
+   "theme": "deep_sea_giant",
+   "mech": "anticipation",
+   "title": "水面の下を横切る影",
+   "blurb": "水の中を、とても大きなものがゆっくり通り過ぎていく。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 3,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.anticipation",
+    "t02",
+    "t08",
+    "t18",
+    "t22",
+    "t24",
+    "t26",
+    "t27",
+    "t31",
+    "t36",
+    "t39",
+    "t41"
+   ],
+   "evidence": 0.4
+  },
+  {
+   "id": "core.deep_sea_giant.control_loss",
+   "kind": "core",
+   "theme": "deep_sea_giant",
+   "mech": "control_loss",
+   "title": "沈んでいく",
+   "blurb": "光が遠ざかり、浮かぶ手段がなくなっていく。",
+   "minLevel": 1,
+   "pace": {
+    "slow": 2,
+    "sudden": 1,
+    "loop": 0
+   },
+   "media": [
+    "text",
+    "visual"
+   ],
+   "refs": [
+    "mech.control_loss",
+    "t29",
+    "t30",
+    "t34",
+    "t35"
+   ],
+   "evidence": 0.38
+  },
+  {
    "id": "core.depth_vastness.ambiguity",
    "kind": "core",
    "theme": "depth_vastness",
    "mech": "ambiguity",
-   "title": "底の見えない水",
-   "blurb": "足元の下に広がる、深さの分からない空間を見つめ続ける。",
+   "title": "果ての見えない場所",
+   "blurb": "何もない広い場所で、距離の感覚を失っていく。",
    "minLevel": 1,
    "pace": {
     "slow": 3,
@@ -1588,17 +1683,30 @@
    "kind": "support",
    "theme": "depth_vastness",
    "mech": null,
-   "title": "深さ・広大さの気配",
-   "blurb": "深海・宇宙・高所など、足場や果てのない空間",
+   "title": "高所・広大さの気配",
+   "blurb": "高所・荒野・果てのない空間と、足場のなさ",
    "minLevel": 1,
    "refs": [
     "fo.height",
-    "fo.deep_water",
     "fo.storm",
     "fo.vast_space",
     "fo.flying_transport"
    ],
    "evidence": 0.68
+  },
+  {
+   "id": "sup.t.deep_sea_giant",
+   "kind": "support",
+   "theme": "deep_sea_giant",
+   "mech": null,
+   "title": "深海・巨大な存在の気配",
+   "blurb": "水中の深み、見えない巨大なもの",
+   "minLevel": 1,
+   "refs": [
+    "fo.deep_water",
+    "fo.giant_creature"
+   ],
+   "evidence": 0.5
   },
   {
    "id": "sup.t.humanoid_face",

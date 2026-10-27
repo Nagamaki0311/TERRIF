@@ -55,47 +55,13 @@ export function composeStory(recipe, fragments, seed) {
   const push = (stage, i, lines) =>
     stages.push({ stage, name: F.stageNames[i], lines: lines.filter(Boolean) });
 
-  // 1. 安全
-  push('safe', 0, [
-    { text: fill(choose(voice.open)), kind: 'frame', delay: 800 },
-    header('safe', 0),
-    body(pick(F.themes[core.theme].safe, 0), D),
-    recipe.pace === 'slow' ? body(pick(F.themes[core.theme].safe, 0), D) : null,
-  ]);
-  // 2. 違和感
-  const unease = pick(F.themes[core.theme].unease, 1);
-  push('unease', 1, [
-    header('unease', 1),
-    recipe.pace === 'slow' ? paceLine('slow') : null,
-    body(unease, D),
-    body(pick(F.mechs[core.mech]?.unease, 1), D),
-    recipe.pace === 'loop' ? body(unease, D) : null,
-  ]);
-  // 3. 確信
-  push('certainty', 2, [
-    header('certainty', 2),
-    recipe.pace === 'loop' ? paceLine('loop') : null,
-    body(pick(F.themes[core.theme].certainty, 2), D),
-    supTheme ? body(pick(F.themes[supTheme].certainty, 2), D) : null,
-    supMech ? body(pick(F.mechs[supMech]?.certainty, 2), D) : null,
-    e0 ? { text: echoLine(e0, false), kind: 'echo', delay: D + 400 } : null,
-  ]);
-  // 4. 侵犯: 突発型は直前に長い間を置く
-  push('violation', 3, [
-    header('violation', 3),
-    recipe.pace === 'sudden' ? { ...paceLine('sudden'), delay: 4200 } : null,
-    body(pick(F.themes[core.theme].violation, 3), recipe.pace === 'sudden' ? 600 : D),
-    supTheme ? body(pick(F.themes[supTheme].violation, 3), D) : null,
-    body(pick(F.mechs[core.mech]?.violation, 3), D),
-    e1 ? { text: echoLine(e1, false), kind: 'echo', delay: D } : null,
-  ]);
-  // 5. 余韻: 画面を閉じた後の日常に残るものを、回答に結びつける
-  push('afterglow', 4, [
-    header('afterglow', 4),
-    body(pick(F.themes[core.theme].afterglow, 4), D),
-    e0 ? { text: echoLine(e0, true), kind: 'echo', delay: D + 600 } : null,
-    { text: choose(voice.close), kind: 'frame', delay: D + 600 },
-  ]);
+  // 字幕: 各段階で対象の断片を1行だけ使う。語り口の枠、仕組みの補助行、ペースのつなぎは使わず、一貫した筋にする
+  const one = (stage, i) => push(stage, i, [body(pick(F.themes[core.theme][stage], i), D)]);
+  one('safe', 0);
+  one('unease', 1);
+  push('certainty', 2, [body(pick(F.themes[core.theme].certainty, 2), D), e0 ? { text: echoLine(e0, false), kind: 'echo', delay: D + 400 } : null]);
+  one('violation', 3);
+  one('afterglow', 4);
   return stages;
 }
 
