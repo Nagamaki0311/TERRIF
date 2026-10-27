@@ -339,6 +339,10 @@ export function createVisual(canvas, opts = {}) {
   let raf = 0, last = 0, grain = null, grainOffset = [0, 0], grainAt = 0;
 
   const size = () => {
+    if (opts.fixedSize) {
+      [canvas.width, canvas.height] = opts.fixedSize;
+      return;
+    }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(2, Math.floor(canvas.clientWidth * dpr));
     const h = Math.max(2, Math.floor(canvas.clientHeight * dpr));

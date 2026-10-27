@@ -5,6 +5,7 @@ import { createSession, replay } from '../engine/engine.js';
 import { buildRecipe } from '../engine/recipe.js';
 import { composeStory } from '../render/text.js';
 import { runExperience } from './experience.js';
+import { shareSection } from './share.js';
 
 const params = new URLSearchParams(location.search);
 const DEBUG = params.get('debug') === '1';
@@ -282,6 +283,7 @@ function renderReport() {
           h('dt', {}, '音・演出'), h('dd', {}, `音: ${state.settings.audio ? 'あり' : 'なし'} ／ ブラウザ演出: ${state.settings.effects ? 'あり' : 'なし'}。${echoNote}`),
         ),
       ),
+      shareSection(h, state.report),
       h('p', { class: 'small' }, '体験は任意です。始めると全画面の読み物になり、画面上部の「中止して戻る」またはEscキーでいつでも止められます。閃光や点滅は使いません。不安が強いときは、体験せずにここで終えても構いません。'),
       h('div', { class: 'actions' }, start, exp, again),
       DEBUG ? h('pre', { class: 'debug' }, debugText(state.session) + '\n\n' + JSON.stringify({ recipe: { core: recipe.core.id, supports: recipe.supports.map((s) => s.id), pace: recipe.pace, form: recipe.form, voice: recipe.voice, level: recipe.level, alternatives: recipe.alternatives, scores: recipe.scores } }, null, 1)) : null,
