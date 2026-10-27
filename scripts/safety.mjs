@@ -77,9 +77,12 @@ for (const fg of ['e6e2d6', 'b9b5a8', 'f0a597', 'e08a7a', 'c9c5b8']) {
 for (const f of jsFiles) {
   const s = read(f);
   for (const bad of ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'document.write', 'eval(', 'new Function', 'XMLHttpRequest', 'sendBeacon', 'WebSocket', 'Notification', 'navigator.clipboard']) {
+    if (f.endsWith('share.js') && bad === 'navigator.clipboard') continue; // 利用者が押したときの文面コピーのみ
     check(!s.includes(bad), `${f}: 使用禁止のAPI ${bad}`);
   }
-  check(!/https?:\/\//.test(s.replace(/\/\/.*$/gm, '')), `${f}: 外部URLの記述`);
+  const noComment = s.replace(/\/\/.*$/gm, '');
+  // 外部URLは share.js のXの投稿画面（利用者がボタンを押したときに開く）だけ許可する
+  check(!/https?:\/\//.test(f.endsWith('share.js') ? noComment.replace(/https:\/\/twitter\.com\/intent\/tweet\?text=/, '') : noComment), `${f}: 外部URLの記述`);
   if (/engine\/|render\/text/.test(f)) check(!/Math\.random|Date\.now|new Date/.test(s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')), `${f}: 非決定的な乱数・時刻`);
 }
 check(!/https?:\/\//.test(read('index.html').replace(/<meta[^>]*>/g, '')), 'index.htmlに外部URL');

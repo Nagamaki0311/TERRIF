@@ -63,6 +63,14 @@ async function scenario(browser, name, viewport, { reduced = false } = {}) {
   check((await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0, `${name}: 横スクロールが出ない（レポート）`);
   check((await page.textContent('main')).includes('診断ではなく'), `${name}: レポートに診断ではない旨がある`);
 
+  // 共有: 画像は1200x630で保存でき、文面に回答の引用・seedを含まない
+  const card = page.locator('canvas[aria-label^="共有用の画像"]');
+  check((await card.evaluate((c) => `${c.width}x${c.height}`)) === '1200x630', `${name}: 共有画像が1200x630`);
+  await card.screenshot({ path: `${shots}/${name}-3b-card.png` });
+  const shareP = await page.locator('main p[style*="pre-wrap"]').textContent();
+  check(shareP.includes('#TERRIF') && !shareP.includes(`e2e-${name}`) && !/答え/.test(shareP), `${name}: 共有文面に回答・seedを含まない`);
+  const [dl0] = await Promise.all([page.waitForEvent('download'), page.click('button:has-text("画像を保存")')]);
+  check(dl0.suggestedFilename() === 'terrif.png', `${name}: 共有画像を保存できる`);
   await page.click('button:has-text("体験する")');
   await page.waitForSelector('.exp');
   const stopVisible = async () => {
