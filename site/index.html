@@ -9,6 +9,8 @@
 <meta property="og:title" content="nαgαiki のホームページ">
 <meta property="og:description" content="思ったことを、思ったときに置いていく机の上。">
 <meta property="og:type" content="website">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f2ece0'/%3E%3Ccircle cx='13' cy='16' r='9' fill='%23ff4fa3' style='mix-blend-mode:multiply'/%3E%3Ccircle cx='19' cy='16' r='9' fill='%230a7bd1' style='mix-blend-mode:multiply' opacity='.85'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +30,7 @@
     <a href="#sns"><span>02</span>よそのページ</a>
     <a href="#profile"><span>03</span>プロフ帳</a>
   </nav>
+  <button type="button" class="lamp-btn" data-lamp aria-pressed="false" title="夜のあかり">☾</button>
   <p class="topbar__clock mono" aria-label="現在時刻"><span data-clock>----/--/-- --:--:--</span></p>
 </header>
 
@@ -62,6 +65,7 @@
     <div class="desk-tools" role="toolbar" aria-label="机の上の操作">
       <button type="button" class="chip" data-act="shake">ゆらす</button>
       <button type="button" class="chip" data-act="tidy" aria-pressed="false">ならべる</button>
+      <button type="button" class="chip chip--gacha" data-act="gacha">ガチャ</button>
       <button type="button" class="chip" data-act="tilt" hidden>かたむける</button>
       <span class="desk-tools__count mono" data-count></span>
     </div>
@@ -111,6 +115,12 @@
   <p class="foot__marquee mono" aria-hidden="true"><span>THANK YOU FOR VISITING ★ リンクフリー ★ 相互リンク募集はしていません ★ THANK YOU FOR VISITING ★ リンクフリー ★ 相互リンク募集はしていません ★</span></p>
   <p class="foot__meta mono">最終更新 <span data-updated>----/--/-- --:--:--</span> ／ © <span data-name>nαgαiki</span></p>
 </footer>
+
+<!-- 夜のあかり（カーソルの位置だけ明るい） -->
+<div class="lamp" aria-hidden="true" data-lamp-layer></div>
+<!-- ガチャのカプセルとキリ番の紙吹雪 -->
+<div class="capsule" aria-hidden="true" data-capsule><i></i><i></i></div>
+<div class="kiriban" role="status" data-kiriban hidden></div>
 
 <!-- 投稿の全文を開くウィンドウ -->
 <dialog class="modal" data-modal aria-labelledby="modal-title">

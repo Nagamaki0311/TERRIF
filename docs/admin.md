@@ -6,6 +6,8 @@
 2. 「Build and deployment」の Source を「GitHub Actions」にする。
 3. Actions タブで「Pages」ワークフローを手動実行（Run workflow）するか、`main` に変更が入るのを待つ。
 
+2026-10-31 時点では公開元が「ブランチ」になっており、トップに置いた入口（リポジトリ直下の index.html）が `site/` へ転送している。公開元を GitHub Actions に変えると、`site/` がそのままトップになり、note・YouTube の自動更新と共有用画像の絶対URL化も働く。変えた後は、リポジトリ直下の index.html と .nojekyll を消してよい。
+
 ## 2. 独自ドメイン（nk-pr.com のサブドメイン）
 
 1. サブドメイン名を決める（例: `home.nk-pr.com`）。

@@ -33,6 +33,12 @@ for (const [name, vp, opt] of [['pc', { width: 1440, height: 900 }, {}], ['sp', 
     });
   });
   check(inside, `${name}: 投稿の物体が机の中にある`);
+  // ガチャで過去の投稿が開く
+  await page.click('[data-act="gacha"]');
+  await page.waitForSelector('[data-modal][open]', { timeout: 4000 }).catch(() => {});
+  check(await page.evaluate(() => document.querySelector('[data-modal]').open), `${name}: ガチャで投稿が開く`);
+  await page.screenshot({ path: `${out}/${name}-2b-gacha.png` });
+  await page.click('[data-close]');
   // 画面に入ったときの表示を発火させるため、最後まで少しずつスクロールしてから全体を撮る
   for (let y = 0; y < (await page.evaluate(() => document.body.scrollHeight)); y += 500) {
     await page.evaluate((v) => scrollTo(0, v), y);
@@ -42,6 +48,19 @@ for (const [name, vp, opt] of [['pc', { width: 1440, height: 900 }, {}], ['sp', 
   await page.screenshot({ path: `${out}/${name}-3-full.png`, fullPage: true });
   check((await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0, `${name}: 横スクロールなし`);
   check(errs.length === 0, `${name}: コンソールエラーなし ${errs.join(' | ')}`);
+  await ctx.close();
+}
+// キリ番と夜のあかり
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await ctx.addInitScript(() => { if (!sessionStorage.getItem('nk.counted')) { localStorage.setItem('nk.visits', '110'); localStorage.setItem('nk.lamp', '1'); } });
+  const page = await ctx.newPage();
+  await page.goto(base + '/');
+  await page.mouse.move(400, 300);
+  await page.waitForTimeout(1200);
+  check(/111回目/.test(await page.textContent('[data-kiriban]')), 'キリ番（111回目）で表示が出る');
+  check(await page.evaluate(() => document.documentElement.classList.contains('is-lamp')), '夜のあかりがつく');
+  await page.screenshot({ path: `${out}/kiriban-lamp.png` });
   await ctx.close();
 }
 // 投稿画面: GitHub API を模して、登録→投稿→一覧への反映を確認する

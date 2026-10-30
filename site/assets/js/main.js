@@ -24,6 +24,7 @@ async function boot() {
   setupReveal();
   if (finePointer && !reduced) setupSparkle();
   if (!reduced) setupDisc();
+  setupLamp();
 }
 
 // ===== SECTION: ヒーロー =====
@@ -57,6 +58,7 @@ function renderHero(site, posts) {
     }
   } catch { /* 保存できない環境では1回目として表示する */ }
   const digits = String(Math.max(1, n)).padStart(6, '0');
+  kiriban(n);
   const box = $('[data-counter]');
   box.setAttribute('aria-label', `${n}回目`);
   box.replaceChildren(...[...digits].map((d) => Object.assign(document.createElement('b'), { textContent: d })));
@@ -93,6 +95,20 @@ function renderDesk(posts) {
     sync();
   });
   $('[data-act="shake"]').addEventListener('click', () => ctl.shake());
+  // ガチャ: カプセルが落ちてきて、過去の投稿が1つ出る
+  $('[data-act="gacha"]').addEventListener('click', () => {
+    if (!posts.length) return;
+    const pick = posts[Math.floor(Math.random() * posts.length)];
+    if (reduced) return open(pick);
+    const cap = $('[data-capsule]');
+    cap.classList.remove('is-go');
+    void cap.offsetWidth;
+    cap.classList.add('is-go');
+    setTimeout(() => {
+      cap.classList.remove('is-go');
+      open(pick);
+    }, 1900);
+  });
   const tiltBtn = $('[data-act="tilt"]');
   if ('DeviceOrientationEvent' in window && matchMedia('(pointer: coarse)').matches && !reduced) {
     tiltBtn.hidden = false;
@@ -204,6 +220,53 @@ function setupReveal() {
   }, { threshold: 0.12 });
   els.forEach((el) => io.observe(el));
 }
+/** キリ番（ゾロ目や100ごと）の訪問で、紙吹雪を降らせる */
+function kiriban(n) {
+  const s = String(n);
+  if (!(n >= 7 && (n % 100 === 0 || (s.length > 1 && /^(\d)\1+$/.test(s)) || n === 7))) return;
+  const box = $('[data-kiriban]');
+  box.hidden = false;
+  box.textContent = `${n}回目の訪問！ キリ番です！`;
+  if (!reduced) {
+    const colors = ['#ff4fa3', '#0a7bd1', '#ffd23f', '#00a37a'];
+    for (let i = 0; i < 60; i++) {
+      const c = document.createElement('i');
+      c.className = 'confetti';
+      c.style.cssText = `left:${Math.random() * 100}vw;background:${colors[i % 4]};--dx:${(Math.random() - 0.5) * 30}vw;--t:${2 + Math.random() * 2}s;animation-delay:${Math.random() * 0.8}s`;
+      document.body.append(c);
+      c.addEventListener('animationend', () => c.remove());
+    }
+  }
+  setTimeout(() => (box.hidden = true), 5000);
+}
+
+/** 夜のあかり。日本時間の19時〜5時は自動でつく。ボタンで切り替えられる */
+function setupLamp() {
+  const btn = $('[data-lamp]');
+  const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+  let on = hour >= 19 || hour < 5;
+  try {
+    const saved = localStorage.getItem('nk.lamp');
+    if (saved) on = saved === '1';
+  } catch { /* 保存できない環境では時刻で決める */ }
+  const set = (v) => {
+    on = v;
+    document.documentElement.classList.toggle('is-lamp', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.title = on ? '夜のあかりを消す' : '夜のあかりをつける';
+  };
+  set(on);
+  btn.addEventListener('click', () => {
+    set(!on);
+    try { localStorage.setItem('nk.lamp', on ? '1' : '0'); } catch { /* 何もしない */ }
+  });
+  const layer = $('[data-lamp-layer]');
+  addEventListener('pointermove', (e) => {
+    layer.style.setProperty('--lx', `${e.clientX}px`);
+    layer.style.setProperty('--ly', `${e.clientY}px`);
+  }, { passive: true });
+}
+
 function setupDisc() {
   const face = document.querySelector('[data-disc] .disc__face');
   if (!face) return;
