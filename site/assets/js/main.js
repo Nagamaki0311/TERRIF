@@ -27,6 +27,8 @@ async function boot() {
   if (!reduced) setupDisc();
   setupLamp();
   setupBgm();
+  setupProgress();
+  if (finePointer) setupWinDrag();
 }
 
 // ===== SECTION: ヒーロー =====
@@ -288,6 +290,41 @@ function setupBgm() {
     btn.setAttribute('aria-pressed', String(bgm.on));
     btn.title = bgm.on ? 'BGMを止める' : 'BGMを鳴らす';
   });
+}
+
+function setupProgress() {
+  const bar = $('[data-progress]');
+  const upd = () => bar.style.setProperty('--p', String(Math.min(1, scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight))));
+  addEventListener('scroll', upd, { passive: true });
+  upd();
+}
+
+/** 窓をタイトルバーでつまんで動かす。ダブルクリックで元の位置に戻る */
+function setupWinDrag() {
+  for (const win of $$('.sns .win')) {
+    const bar = win.querySelector('.win__bar');
+    let start = null, x = 0, y = 0;
+    bar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('a, button')) return;
+      start = { px: e.clientX - x, py: e.clientY - y };
+      bar.setPointerCapture(e.pointerId);
+      win.classList.add('is-drag');
+    });
+    bar.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      x = e.clientX - start.px;
+      y = e.clientY - start.py;
+      win.style.translate = `${x}px ${y}px`;
+    });
+    bar.addEventListener('pointerup', () => {
+      start = null;
+      win.classList.remove('is-drag');
+    });
+    bar.addEventListener('dblclick', () => {
+      x = y = 0;
+      win.style.translate = '';
+    });
+  }
 }
 
 function setupDisc() {
