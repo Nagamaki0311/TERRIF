@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>nαgαiki のホームページ</title>
+<meta name="description" content="nαgαiki の個人ホームページ。思ったことを、思ったときに置いていく机の上。">
+<meta name="theme-color" content="#f2ece0">
+<meta property="og:title" content="nαgαiki のホームページ">
+<meta property="og:description" content="思ったことを、思ったときに置いていく机の上。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f2ece0'/%3E%3Ccircle cx='13' cy='16' r='9' fill='%23ff4fa3' style='mix-blend-mode:multiply'/%3E%3Ccircle cx='19' cy='16' r='9' fill='%230a7bd1' style='mix-blend-mode:multiply' opacity='.85'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip" href="#now">本文へ移動</a>
+
+<!-- 紙の地紋と粒子。装飾のみ -->
+<div class="paper" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="topbar__logo" href="#top" aria-label="トップへ">nk</a>
+  <nav class="topbar__nav" aria-label="目次">
+    <a href="#now"><span>01</span>いまのきもち</a>
+    <a href="#sns"><span>02</span>よそのページ</a>
+    <a href="#profile"><span>03</span>プロフ帳</a>
+  </nav>
+  <p class="topbar__clock mono" aria-label="現在時刻"><span data-clock>----/--/-- --:--:--</span></p>
+</header>
+
+<main id="top">
+  <!-- ===== SECTION: ヒーロー ===== -->
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="hero__kicker mono">PERSONAL HOMEPAGE ／ EST. 2026 ／ 平成のつづき</p>
+    <h1 class="hero__title riso" id="hero-title" data-riso><span data-name>nαgαiki</span></h1>
+    <p class="hero__kana" data-kana>ながいき</p>
+    <p class="hero__tag" data-tagline>ちくわパン。</p>
+    <div class="disc" aria-hidden="true" data-disc><div class="disc__face"><span class="disc__label">nk-pr<br><small>VOL.01 ／ 2026</small></span></div></div>
+    <div class="hero__stamp" aria-hidden="true"><span>WELCOME<br>TO MY<br>DESK</span></div>
+    <div class="counter" aria-live="off">
+      <span class="counter__label">あなたの訪問</span>
+      <span class="counter__digits mono" data-counter>000000</span>
+      <span class="counter__label">回目</span>
+    </div>
+    <div class="ticker" role="region" aria-label="最新の投稿">
+      <span class="ticker__tag">NOW</span>
+      <div class="ticker__track"><p class="ticker__text" data-ticker>読みこみ中…</p></div>
+    </div>
+    <p class="hero__intro" data-intro></p>
+  </section>
+
+  <!-- ===== SECTION: いまのきもち（投稿） ===== -->
+  <section class="now" id="now" aria-labelledby="now-title">
+    <header class="sec-head">
+      <p class="sec-head__no mono">01</p>
+      <h2 class="sec-head__title riso" id="now-title" data-riso>いまのきもち</h2>
+      <p class="sec-head__lead">机の上に置いた、きょうの言葉たち。つまんで動かせます。タップで全文。</p>
+    </header>
+    <div class="desk-tools" role="toolbar" aria-label="机の上の操作">
+      <button type="button" class="chip" data-act="shake">ゆらす</button>
+      <button type="button" class="chip" data-act="tidy" aria-pressed="false">ならべる</button>
+      <button type="button" class="chip" data-act="tilt" hidden>かたむける</button>
+      <span class="desk-tools__count mono" data-count></span>
+    </div>
+    <div class="desk" data-desk>
+      <ol class="desk__list" data-posts aria-label="投稿の一覧"></ol>
+    </div>
+  </section>
+
+  <!-- ===== SECTION: よそのページ（SNS） ===== -->
+  <section class="sns" id="sns" aria-labelledby="sns-title">
+    <header class="sec-head">
+      <p class="sec-head__no mono">02</p>
+      <h2 class="sec-head__title riso" id="sns-title" data-riso>よそのページ</h2>
+      <p class="sec-head__lead">ほかの場所に置いてきたもの。いちばん新しいものから。</p>
+    </header>
+    <div class="windows">
+      <article class="win win--x" aria-labelledby="w-x">
+        <div class="win__bar"><span class="win__dots" aria-hidden="true"></span><h3 id="w-x">X.exe</h3><a class="win__open" data-link="x" href="https://x.com/tree_113" target="_blank" rel="noopener">ひらく↗</a></div>
+        <div class="win__body" data-x><p class="win__empty">窓が見えたら読みこみます…</p></div>
+      </article>
+      <article class="win win--note" aria-labelledby="w-note">
+        <div class="win__bar"><span class="win__dots" aria-hidden="true"></span><h3 id="w-note">note.txt</h3><a class="win__open" data-link="note" href="https://note.com/longwood" target="_blank" rel="noopener">ひらく↗</a></div>
+        <div class="win__body"><ul class="cards" data-note></ul></div>
+      </article>
+      <article class="win win--yt" aria-labelledby="w-yt">
+        <div class="win__bar"><span class="win__dots" aria-hidden="true"></span><h3 id="w-yt">YouTube.avi</h3><a class="win__open" data-link="youtube" href="https://youtube.com/@longwood0311" target="_blank" rel="noopener">ひらく↗</a></div>
+        <div class="win__body"><ul class="cards" data-youtube></ul></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== SECTION: プロフ帳 ===== -->
+  <section class="profile" id="profile" aria-labelledby="profile-title">
+    <header class="sec-head">
+      <p class="sec-head__no mono">03</p>
+      <h2 class="sec-head__title riso" id="profile-title" data-riso>プロフ帳</h2>
+    </header>
+    <div class="prof">
+      <div class="prof__photo" aria-hidden="true"><span>PHOTO<br>のかわりに<br>ちくわパン</span></div>
+      <dl class="prof__list" data-profile></dl>
+      <p class="prof__sticker" aria-hidden="true">なかよく<br>してね!!</p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p class="foot__marquee mono" aria-hidden="true"><span>THANK YOU FOR VISITING ★ リンクフリー ★ 相互リンク募集はしていません ★ THANK YOU FOR VISITING ★ リンクフリー ★ 相互リンク募集はしていません ★</span></p>
+  <p class="foot__meta mono">最終更新 <span data-updated>----/--/-- --:--:--</span> ／ © <span data-name>nαgαiki</span></p>
+</footer>
+
+<!-- 投稿の全文を開くウィンドウ -->
+<dialog class="modal" data-modal aria-labelledby="modal-title">
+  <div class="win win--modal">
+    <div class="win__bar"><span class="win__dots" aria-hidden="true"></span><h3 id="modal-title">memo.txt</h3><button type="button" class="win__close" data-close aria-label="閉じる">×</button></div>
+    <div class="win__body">
+      <p class="modal__text" data-modal-text></p>
+      <p class="stamp-time mono" data-modal-time></p>
+    </div>
+  </div>
+</dialog>
+
+<script src="assets/vendor/matter.min.js" defer></script>
+<script type="module" src="assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+# デザインと調査のまとめ
+
+個人ホームページ（nk-pr.com のサブドメインで公開予定）の、デザイン方針・調査結果・仕組みの判断をまとめる。判断の経緯は decisions.md、手順は admin.md を参照する。
+
+## コンセプト：「机の上」
+
+平成の個人ホームページ（アクセスカウンター、電光掲示板、マーキー、プロフ帳、リンクフリー表記）を、リソグラフ印刷の質感（特色インクの乗算、版ズレ、網点、紙の粒子）で刷り直す。投稿は、カッターマットの上に置かれた付箋・吹き出し・ウィンドウ・電光パネル・シール・バブルとして物理演算で落ち、つまんで動かせる。
+
+| 要素 | 決定 | 理由 |
+|---|---|---|
+| 色 | 生成りの紙 #f2ece0、墨 #1d1a17、特色インクの蛍光ピンク #ff4fa3・ブルー #0a7bd1・イエロー #ffd23f・グリーン #00a37a | リソグラフの代表的な特色。乗算で重ねると第3の色が出る |
+| 書体 | 見出しは Dela Gothic One（ずっしりした太さ）、数字・時刻・UI札は DotGothic16（ドット）、本文は Zen Kaku Gothic New | 指定の「ずっしりとしたレトロなフォント」とドット表現。本文は読みやすさ優先 |
+| 版ズレ | 見出しを青で刷り、同じ文字をピンクの網点で少しずらして乗算 | 印刷のずれを、文字の読みやすさを保ったまま表現する |
+| 質感 | 紙の粒子（SVGノイズ、静止）、網点の背景、ちぎった紙の区切り | アナログ感。動かない質感は視認性を損なわない |
+| 立体 | ヒーローの CD-R がカーソルの向きに傾き、記録面の虹色が回る | 平成の記録媒体。3D の要素を1点に絞る |
+| 物理 | Matter.js 0.20.0（同梱、MIT） | 2D の剛体とつかむ操作に十分。three.js より軽い |
+
+## 視覚効果の一覧（動きを減らす設定での扱い）
+
+| 効果 | 場所 | 動きを減らす設定 |
+|---|---|---|
+| 投稿の落下・つかむ・ゆらす・端末を傾ける | 机 | 物理を止め、ならべた表示にする |
+| 版ズレが揃う（読み込み時、画面に入ったとき） | 見出し | ずれ量を小さくし、動かさない |
+| 文字がはねる | ヒーローの名前 | 動かさない |
+| CD-R の回転と傾き | ヒーロー | 動かさない |
+| 電光掲示板・フッターのマーキー | ヒーロー・フッター | 流さずに表示 |
+| カーソルのきらきら | 全体（マウスのみ） | 出さない |
+| 区画の刷り出し | 各区画 | 最初から表示 |
+
+閃光や点滅は使わない。文字は DOM のまま残し、読み上げ・選択・拡大に対応する。
+
+## 採用しなかった案
+
+| 案 | 理由 |
+|---|---|
+| three.js による全面の3D | 重く、文字の読みやすさと両立しにくい。立体は CD-R に絞った |
+| 紫や青紫のグラデーション、ガラス質のカード | 題材（印刷物）から導けない |
+| 本物のアクセスカウンター | サーバーが必要。端末ごとの訪問回数として正直に表示する |
+
+## SNS の取り込み（有料の API を使わない）
+
+| SNS | 方法 | 状態 |
+|---|---|---|
+| X | 公式の無料埋め込み（publish.x.com のタイムライン）を、窓が見えたときに読み込む。表示されなければプロフィールへのリンクに切り替える | 2026年10月時点で無料の埋め込みは提供されている（[X Developer: Embedded timelines](https://docs.x.com/x-for-websites/timelines/overview)、[X ヘルプ](https://help.x.com/en/using-x/embed-x-feed)） |
+| note | RSS（https://note.com/longwood/rss）を公開時に取得 | 取得を確認済み |
+| YouTube | チャンネルの RSS（videos.xml?channel_id=UC…）を公開時に取得 | チャンネルIDが必要。`site/data/site.json` の `sns.youtube.channelId` に入れると表示される |
+
+note と YouTube は、GitHub Actions が公開のたび（投稿時と1時間ごと）に取得し、`site/data/feeds.json` として配信する。
+
+## 投稿の仕組み
+
+スマホの投稿画面（`/admin/`）から、GitHub の Contents API で `site/data/posts.json` を更新する。更新が GitHub Pages の公開を起動し、約1分で反映される。トークンは管理者の端末にだけ保存し、投稿画面はCSPで api.github.com 以外への通信を禁止する。手順は admin.md。
+
+## 参考にした情報
+
+- リソグラフの表現（乗算・網点・粒子・版ズレ）: [Advanced Risograph Techniques](https://jonathanstephens.us/play/riso/)、[MDN mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode)
+- 評価の観点（Awwwards はデザイン・使いやすさ・創造性・内容で採点）: [Awwwards の評価](https://awwwards.com/about-evaluation)
+- note の RSS: [note ヘルプ](https://www.help-note.com/hc/ja/articles/4402395202841)
+- Supabase 無料枠の停止（7日間の非活動で停止）: 採用しなかった理由として参照（[Supabase の料金解説](https://www.jetadmin.io/blog/supabase-pricing-2026-guide-to-plans-limits-and-real-world-costs/)）

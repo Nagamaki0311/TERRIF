@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.github.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#1d1a17">
+<title>投稿（管理）</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+<main class="adm">
+  <header class="adm__head">
+    <h1 class="adm__title">いま、なにしてる？</h1>
+    <a class="adm__site mono" href="../" target="_blank" rel="noopener">サイトを見る↗</a>
+  </header>
+
+  <!-- 初回だけ: GitHubのトークンを登録 -->
+  <section class="adm__setup" data-setup hidden>
+    <h2>はじめに（1回だけ）</h2>
+    <p>投稿はこのサイトのリポジトリに保存します。GitHubで、このリポジトリの「Contents: 読み書き」だけを許可したトークンを作り、貼り付けてください。トークンはこの端末の中にだけ保存されます。</p>
+    <p class="mono small">保存先: <span data-repo></span></p>
+    <label class="adm__label" for="token">トークン（github_pat_ から始まる文字列）</label>
+    <input id="token" class="adm__input" type="password" autocomplete="off" spellcheck="false" data-token>
+    <button type="button" class="adm__btn" data-save>登録する</button>
+    <p class="adm__msg" data-setup-msg role="status"></p>
+  </section>
+
+  <!-- 投稿 -->
+  <section class="adm__compose" data-compose hidden>
+    <label class="visually-hidden" for="text">投稿する言葉</label>
+    <textarea id="text" class="adm__text" maxlength="280" rows="5" placeholder="思ったことを、そのまま。" data-text></textarea>
+    <div class="adm__row">
+      <span class="mono small" data-len>0 / 280</span>
+      <button type="button" class="adm__btn adm__btn--post" data-post disabled>置く</button>
+    </div>
+    <p class="adm__msg" data-msg role="status" aria-live="polite"></p>
+    <h2 class="adm__h2">さいきん置いたもの</h2>
+    <ol class="adm__list" data-list></ol>
+    <p class="adm__foot"><button type="button" class="linkish" data-logout>この端末からトークンを消す</button></p>
+  </section>
+</main>
+<script type="module" src="admin.js"></script>
+</body>
+</html>

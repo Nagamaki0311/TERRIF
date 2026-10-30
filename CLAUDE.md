@@ -30,6 +30,14 @@ Skills（`.claude/skills/`配下のSKILL.md）は、再利用可能な具体的�
 
 サブエージェント（Planner/Researcher/Developer/Reviewer）実行中のみ、`subagentStatusLine`（`.claude/settings.json`）により、専門用語を使わない日本語でエージェントパネルに進捗を表示する。通常のチャット中は表示されず、LLM呼び出しも行わない。詳細はdocs/status-line.mdを参照。
 
+## コマンド
+
+README.md の「コマンド」表を参照する。UI を変えたら `node scripts/shots.mjs <出力先>` で撮影し、検査（コンソールエラー・横スクロール・投稿画面の流れ）を通す。
+
+## デザイントークン
+
+docs/design.md を参照する。紙 #f2ece0、墨 #1d1a17、特色インク（ピンク #ff4fa3・ブルー #0a7bd1・イエロー #ffd23f・グリーン #00a37a）。見出し Dela Gothic One、ドット DotGothic16、本文 Zen Kaku Gothic New。
+
 ## 参照ドキュメント
 
 - REVIEW.md: レビュー方針（敵対的検証）。reviewer Agentが従う

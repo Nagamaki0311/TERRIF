@@ -1,0 +1,1 @@
+{ "name": "nk 投稿", "short_name": "投稿", "start_url": "./", "scope": "./", "display": "standalone", "background_color": "#f2ece0", "theme_color": "#1d1a17", "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }] }

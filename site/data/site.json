@@ -1,0 +1,12 @@
+{
+  "name": "nαgαiki",
+  "kana": "ながいき",
+  "tagline": "ちくわパン。",
+  "intro": "ここは自分の机の上です。思ったことを、思ったときに置いていきます。",
+  "repo": { "owner": "Nagamaki0311", "name": "TERRIF", "branch": "main", "postsPath": "site/data/posts.json" },
+  "sns": {
+    "x": { "handle": "tree_113", "url": "https://x.com/tree_113" },
+    "note": { "user": "longwood", "url": "https://note.com/longwood" },
+    "youtube": { "handle": "@longwood0311", "url": "https://youtube.com/@longwood0311", "channelId": "" }
+  }
+}
