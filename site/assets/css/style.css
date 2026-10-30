@@ -7,6 +7,7 @@
   --ink: #1d1a17;
   --ink-2: #4a443d;
   --pink: #ff4fa3;
+  --pink-ink: #c2005e; /* 小さな文字に使うピンク（紙の上でコントラスト4.5以上） */
   --blue: #0a7bd1;
   --yellow: #ffd23f;
   --green: #00a37a;
@@ -81,7 +82,7 @@ button { font: inherit; color: inherit; }
 }
 .topbar__nav { display: flex; gap: 6px 18px; flex-wrap: wrap; flex: 1; }
 .topbar__nav a { text-decoration: none; font-weight: 700; font-size: 14px; }
-.topbar__nav a span { font-family: var(--dot); color: var(--pink); margin-right: 4px; }
+.topbar__nav a span { font-family: var(--dot); color: var(--pink-ink); margin-right: 4px; }
 .topbar__nav a:hover { text-decoration: underline wavy var(--pink) 2px; text-underline-offset: 5px; }
 .topbar__clock { margin: 0; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
 @media (max-width: 640px) {
@@ -394,7 +395,7 @@ button { font: inherit; color: inherit; }
 html.is-lamp .lamp { opacity: 1; }
 
 /* ===== SECTION: ガチャ ===== */
-.chip--gacha { background: var(--green); color: #fff; }
+.chip--gacha { background: var(--green); color: var(--ink); }
 .capsule { position: fixed; z-index: 80; left: 50%; top: -120px; width: 96px; height: 96px; translate: -50% 0; pointer-events: none; opacity: 0; }
 .capsule i { position: absolute; left: 0; right: 0; height: 50%; border: 3px solid var(--ink); }
 .capsule i:first-child { top: 0; border-radius: 48px 48px 0 0; background: radial-gradient(circle at 30% 30%, #fff 0 10%, transparent 11%), var(--pink); border-bottom-width: 1.5px; }
