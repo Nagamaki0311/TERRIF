@@ -30,14 +30,6 @@ Skills（`.claude/skills/`配下のSKILL.md）は、再利用可能な具体的�
 
 サブエージェント（Planner/Researcher/Developer/Reviewer）実行中のみ、`subagentStatusLine`（`.claude/settings.json`）により、専門用語を使わない日本語でエージェントパネルに進捗を表示する。通常のチャット中は表示されず、LLM呼び出しも行わない。詳細はdocs/status-line.mdを参照。
 
-## コマンド
-
-実行手順と検証の一覧はREADME.mdの「コマンド」表を参照する（二重管理しない）。データを変更したら `node scripts/validate.mjs` と `node scripts/safety.mjs` を必ず通す。
-
-## デザイントークン
-
-design/decision.md を参照する。主な値: 紙 #e8e4d8、墨 #1e1d1a、朱 #9b2d1c（アクセントはこの1色のみ）、本文は明朝系、補助は等幅。体験中は暗い用紙（#12110f）に切り替える。
-
 ## 参照ドキュメント
 
 - REVIEW.md: レビュー方針（敵対的検証）。reviewer Agentが従う
