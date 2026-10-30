@@ -372,6 +372,33 @@ button { font: inherit; color: inherit; }
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.2, .9, .2, 1); }
 .reveal.is-in { opacity: 1; transform: none; }
 
+/* ===== SECTION: 夜のあかり =====
+   夜（日本時間19時〜5時）は机のライトだけが手元を照らす。文字が読めなくならないよう、外側も暗くしすぎない */
+.lamp-btn { border: 2px solid var(--ink); background: var(--paper); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1; display: grid; place-items: center; }
+.lamp-btn[aria-pressed="true"] { background: var(--ink); color: var(--yellow); }
+.lamp {
+  position: fixed; inset: 0; z-index: 55; pointer-events: none; opacity: 0; transition: opacity .8s;
+  background: radial-gradient(circle 340px at var(--lx, 50%) var(--ly, 30%), rgba(255, 210, 120, .14), rgba(255, 210, 120, 0) 55%, rgba(14, 16, 34, .42) 100%);
+  mix-blend-mode: multiply;
+}
+html.is-lamp .lamp { opacity: 1; }
+
+/* ===== SECTION: ガチャ ===== */
+.chip--gacha { background: var(--green); color: #fff; }
+.capsule { position: fixed; z-index: 80; left: 50%; top: -120px; width: 96px; height: 96px; translate: -50% 0; pointer-events: none; opacity: 0; }
+.capsule i { position: absolute; left: 0; right: 0; height: 50%; border: 3px solid var(--ink); }
+.capsule i:first-child { top: 0; border-radius: 48px 48px 0 0; background: radial-gradient(circle at 30% 30%, #fff 0 10%, transparent 11%), var(--pink); border-bottom-width: 1.5px; }
+.capsule i:last-child { bottom: 0; border-radius: 0 0 48px 48px; background: #fff; border-top-width: 1.5px; }
+.capsule.is-go { animation: drop 1s cubic-bezier(.3, 1.4, .5, 1) forwards; }
+.capsule.is-go i:first-child { animation: lid 1.3s .9s ease-in forwards; }
+@keyframes drop { 0% { opacity: 1; top: -120px; rotate: -30deg; } 70% { top: 42vh; rotate: 12deg; } 100% { opacity: 1; top: 40vh; rotate: 0deg; } }
+@keyframes lid { to { translate: 0 -60px; rotate: -40deg; opacity: 0; } }
+
+/* ===== SECTION: キリ番 ===== */
+.kiriban { position: fixed; z-index: 90; left: 50%; top: 18vh; translate: -50% 0; background: var(--yellow); border: 3px solid var(--ink); box-shadow: var(--shadow); padding: 12px 22px; font-family: var(--display); font-size: clamp(18px, 4vw, 30px); text-align: center; animation: pop .5s cubic-bezier(.2, 1.4, .3, 1); }
+.confetti { position: fixed; z-index: 89; top: -20px; width: 9px; height: 14px; pointer-events: none; animation: fall var(--t, 2.6s) linear forwards; }
+@keyframes fall { to { transform: translate(var(--dx, 0), 110vh) rotate(720deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   :root { --mis: .4; }
   html { scroll-behavior: auto; }

@@ -28,7 +28,10 @@ jobs:
           node-version: 22
       - name: note・YouTube の最新を取得
         run: node scripts/fetch-feeds.mjs
-      - uses: actions/configure-pages@v5
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: 共有用画像のURLを絶対パスにする（SNSのクローラー向け）
+        run: sed -i "s#content=\"og.png\"#content=\"${{ steps.pages.outputs.base_url }}/og.png\"#" site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
