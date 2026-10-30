@@ -312,6 +312,13 @@ button { font: inherit; color: inherit; }
 .win__open, .win__close { font-family: var(--dot); color: var(--ink); background: var(--paper); border: 2px solid var(--ink); padding: 0 8px; text-decoration: none; font-size: 13px; cursor: pointer; }
 .win__body { padding: 16px; flex: 1; min-height: 120px; }
 .win--x .win__body { max-height: 720px; overflow: auto; }
+/* X の埋め込みが表示されないときの代わり */
+.win--x .win__body:has(.xcard) { display: grid; place-items: center; background: radial-gradient(circle, rgba(10, 123, 209, .22) 1.4px, transparent 1.9px) 0 0 / 8px 8px; }
+.xcard { display: grid; background: var(--paper); border: 3px solid var(--ink); box-shadow: var(--shadow); padding: 22px 24px !important; justify-items: center !important; text-align: center; gap: 14px; justify-items: start; padding: 8px 4px; }
+.xcard__handle { margin: 0; font-family: var(--display); font-size: clamp(28px, 4vw, 44px); line-height: 1; color: var(--blue); }
+.xcard__note { margin: 0; font-size: 13px; color: var(--ink-2); }
+.xcard__btn { font-family: var(--display); text-decoration: none; background: var(--ink); color: var(--paper); padding: 10px 20px; border-radius: 999px; box-shadow: 4px 4px 0 var(--pink); }
+.xcard__btn:hover { background: var(--blue); }
 .win__empty { margin: 0; font-family: var(--dot); color: var(--ink-2); }
 .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .card { display: grid; grid-template-columns: 132px 1fr; gap: 12px; text-decoration: none; align-items: start; }
@@ -381,7 +388,7 @@ button { font: inherit; color: inherit; }
 @keyframes beat { 50% { transform: scale(1.12); } }
 .lamp {
   position: fixed; inset: 0; z-index: 55; pointer-events: none; opacity: 0; transition: opacity .8s;
-  background: radial-gradient(circle 340px at var(--lx, 50%) var(--ly, 30%), rgba(255, 210, 120, .14), rgba(255, 210, 120, 0) 55%, rgba(14, 16, 34, .42) 100%);
+  background: radial-gradient(circle 460px at var(--lx, 50%) var(--ly, 30%), rgba(255, 210, 120, .12), rgba(255, 210, 120, 0) 60%, rgba(14, 16, 34, .2) 100%);
   mix-blend-mode: multiply;
 }
 html.is-lamp .lamp { opacity: 1; }
