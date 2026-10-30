@@ -52,3 +52,15 @@
 
 ### 次回開始位置
 - ユーザー操作: Pages の公開元を GitHub Actions に変更、投稿用トークン、YouTube のチャンネルID、サブドメイン名。
+
+## 2026-10-31 T-003: 公開元の切り替え後の整理と YouTube の表示
+
+### 実施内容
+- ユーザーが Pages の公開元を GitHub Actions に変え、仮の入口（直下の index.html と .nojekyll）を消した。公開URLは https://nagamaki0311.github.io/TERRIF/ になった。
+- YouTube のチャンネルIDを site/data/site.json に入れ、feeds.json を取り直した（note・YouTube とも6件）。docs/admin.md を現状に合わせた。
+
+### 結果
+- shots.mjs が合格。YouTube の窓に最新動画が4件並ぶことを PC・スマホで確認。公開サイトで共有用画像が絶対URLになっていることを確認。
+
+### 次回開始位置
+- ユーザー操作: 投稿用トークンの作成（GitHub アカウントでの操作が必要）、サブドメイン名、仮の文面の差し替え（どちらも保留中）。
