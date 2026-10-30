@@ -185,11 +185,19 @@ function renderSns(site, feeds) {
     box.replaceChildren(a);
     const s = Object.assign(document.createElement('script'), { src: 'https://platform.twitter.com/widgets.js', async: true, charset: 'utf-8' });
     document.body.append(s);
+    // 埋め込みは、ログインしていない閲覧者には空で表示されることがある。中身が出ていなければ代わりのカードにする
     setTimeout(() => {
-      if (!box.querySelector('iframe')) {
-        box.replaceChildren(Object.assign(document.createElement('a'), { className: 'win__empty', href: site.sns.x.url, target: '_blank', rel: 'noopener', textContent: `@${site.sns.x.handle} をXで見る ↗（埋め込みを表示できませんでした）` }));
-      }
-    }, 9000);
+      const f = box.querySelector('iframe');
+      if (f && f.offsetHeight > 160) return;
+      const card = document.createElement('div');
+      card.className = 'xcard';
+      card.append(
+        Object.assign(document.createElement('p'), { className: 'xcard__handle', textContent: `@${site.sns.x.handle}` }),
+        Object.assign(document.createElement('p'), { className: 'xcard__note', textContent: 'いちばん新しいつぶやきは、Xで見られます。' }),
+        Object.assign(document.createElement('a'), { className: 'xcard__btn', href: site.sns.x.url, target: '_blank', rel: 'noopener', textContent: 'Xでつぶやきを見る ↗' }),
+      );
+      box.replaceChildren(card);
+    }, 10000);
   }, { rootMargin: '200px' }).observe(box);
 }
 
