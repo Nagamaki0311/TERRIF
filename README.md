@@ -1,6 +1,21 @@
-# project001
+# nk-pr ホームページ
 
-Claude CodeによるAI開発OS。新規アプリ開発に共通する開発方針・タスク管理・レビュー手順をテンプレートとして提供する。
+nαgαiki の個人ホームページ。平成の個人サイトとリソグラフ印刷の質感を、物理演算で遊べる「机の上」として組み立てる。スマホの投稿画面から一言を置くと、約1分でサイトに反映される。nk-pr.com のサブドメインで公開予定。
+
+- サイト本体: `site/`（静的な HTML/CSS/JS。Matter.js を同梱）
+- 公開: GitHub Pages（`.github/workflows/pages.yml`）。準備と投稿の手順は docs/admin.md
+- デザインと調査: docs/design.md
+
+## コマンド
+
+| 目的 | コマンド |
+|---|---|
+| 手元で表示 | `node scripts/serve.mjs`（http://127.0.0.1:8080/） |
+| 画面の撮影と検査（Playwright） | `node scripts/shots.mjs <出力先>` |
+| note・YouTube の取得 | `node scripts/fetch-feeds.mjs` |
+
+以下は、このリポジトリの元になった開発テンプレート（project001）の説明。
+
 
 ## セットアップ
 
@@ -11,18 +26,6 @@ Claude CodeによるAI開発OS。新規アプリ開発に共通する開発方�
 ## 使い方
 
 新規アプリを開発する場合、このリポジトリをコピーして雛形として使う。個別アプリの仕様・実装コードはproject001自体には追加しない。以降はAGENTS.mdの開発フローに従って進める。
-
-### 新規プロジェクトでの初期化
-
-`/init-project`コマンド（`.claude/commands/init-project.md`）を実行するか、以下の手順を直接行う。コピー直後にこの手順を行わないと、新規プロジェクトのSessionStart Hookがproject001自身の構築履歴を表示し続けてしまう。docs/のうちtasks.md/progress.md/decisions.mdの3つのみをリセットする。
-
-- `docs/tasks.md`: 「## タスク一覧」表のヘッダ行と区切り行は残し、`T-xxx`の行をすべて削除する。「## バックログ」の既存項目もすべて削除する。列構成は変えない（SessionStart Hookが状態列の値でフィルタするため）。
-- `docs/progress.md`: 「## 記録フォーマット」直後の`---`（この行を含む）より下をすべて削除する。
-- `docs/decisions.md`: 同様に`---`（この行を含む）より下のD-xxxをすべて削除する。
-- 型付き言語を使う場合は、docs/capability-layer.md「派生プロジェクトでの推奨プラグイン」に従ってCode intelligenceプラグインの有効化を検討する（使用言語が未定なら、決まった時点で行う）。
-- （任意）PR作成からマージまでの自動化を使う場合は、docs/agents.md「PR作成からマージまでの自動化」の雛形を、派生プロジェクトのCLAUDE.mdまたは個人設定に追記する。
-- `CLAUDE.md`: project001自身の運用を説明する記述（「Skills / Capability Layer」節など）を派生側の実態に合わせて書き換え、次の2節を追加する。`## コマンド`（ビルド・テスト・lint・起動の実コマンド）と、UIがある場合の`## デザイントークン`（配色・タイポグラフィ・余白。docs/design-workflow.md「デザイントークンの往復」の記録先）。
-- `README.md`: プロジェクト名・概要を書き換える。本節「### 新規プロジェクトでの初期化」自体は削除してよい。
 
 ## 構成
 
