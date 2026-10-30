@@ -33,6 +33,7 @@ body {
   overflow-x: hidden;
 }
 img { max-width: 100%; display: block; }
+::selection { background: var(--yellow); color: var(--ink); }
 a { color: inherit; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
@@ -91,6 +92,14 @@ button { font: inherit; color: inherit; }
   .topbar__nav a { font-size: 12px; }
   .topbar__clock { display: none; }
 }
+
+/* 読んだ量を、Win95風のブロックの進捗バーで示す */
+.progress { position: absolute; left: 0; right: 0; bottom: -6px; height: 4px; pointer-events: none; }
+.progress i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: repeating-linear-gradient(90deg, var(--blue) 0 10px, transparent 10px 12px); }
+
+/* よそのページの窓は、タイトルバーをつまんで動かせる（マウス操作のみ） */
+.win.is-drag { z-index: 5; }
+@media (pointer: fine) { .sns .win__bar { cursor: move; } }
 
 /* ===== SECTION: ヒーロー ===== */
 .hero {
