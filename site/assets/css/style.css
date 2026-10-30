@@ -232,6 +232,15 @@ button { font: inherit; color: inherit; }
 .desk.is-tidy .desk__list { position: static; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 40px 22px 26px; }
 .desk.is-tidy .obj { position: relative; transform: none !important; left: auto; top: auto; }
 
+@media (max-width: 600px) {
+  .desk { height: clamp(540px, calc(320px + var(--n, 6) * 84px), 980px); }
+  .decor--cassette { width: 128px; height: 82px; }
+  .decor--cassette::before { height: 34px; top: 9px; }
+  .decor--eraser { width: 96px; height: 36px; }
+  .decor--heart { width: 64px; height: 64px; }
+  .decor--heart::before { font-size: 70px; }
+  .hero__stamp { width: 84px; font-size: 10px; top: 76px; }
+}
 /* 机の上の物体。位置と回転は physics.js が transform で与える */
 .obj {
   position: absolute; left: 0; top: 0;
