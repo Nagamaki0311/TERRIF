@@ -1,6 +1,7 @@
 // ホームページの起動。データ（site/profile/posts/feeds）を読み、各区画を描く。
 import { fmtTime, getJSON } from './util.js';
 import { createDesk } from './physics.js';
+import { createBgm } from './bgm.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -25,6 +26,7 @@ async function boot() {
   if (finePointer && !reduced) setupSparkle();
   if (!reduced) setupDisc();
   setupLamp();
+  setupBgm();
 }
 
 // ===== SECTION: ヒーロー =====
@@ -244,7 +246,8 @@ function kiriban(n) {
 function setupLamp() {
   const btn = $('[data-lamp]');
   const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
-  let on = hour >= 19 || hour < 5;
+  // 指で操作する端末では光の位置を動かせないため、自動ではつけない
+  let on = finePointer && (hour >= 19 || hour < 5);
   try {
     const saved = localStorage.getItem('nk.lamp');
     if (saved) on = saved === '1';
@@ -265,6 +268,18 @@ function setupLamp() {
     layer.style.setProperty('--lx', `${e.clientX}px`);
     layer.style.setProperty('--ly', `${e.clientY}px`);
   }, { passive: true });
+}
+
+/** BGM のボタン。押したときだけ鳴らす（自動再生しない） */
+function setupBgm() {
+  const btn = $('[data-bgm]');
+  const bgm = createBgm();
+  btn.addEventListener('click', async () => {
+    if (bgm.on) bgm.stop();
+    else await bgm.start();
+    btn.setAttribute('aria-pressed', String(bgm.on));
+    btn.title = bgm.on ? 'BGMを止める' : 'BGMを鳴らす';
+  });
 }
 
 function setupDisc() {
