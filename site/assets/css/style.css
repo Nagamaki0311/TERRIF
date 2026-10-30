@@ -145,11 +145,12 @@ button { font: inherit; color: inherit; }
   background: radial-gradient(circle, rgba(29, 26, 23, .22) 1px, transparent 1.6px) 0 0 / 5px 5px, linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .55) 47%, transparent 58%);
   mix-blend-mode: soft-light;
 }
-.disc__label { position: absolute; left: 50%; top: 24%; translate: -50% 0; background: var(--paper); border: 2px solid var(--ink); padding: 4px 10px; font-family: var(--display); font-size: clamp(14px, 1.6vw, 22px); line-height: 1.1; text-align: center; rotate: -6deg; }
+.disc__label { position: absolute; white-space: nowrap; left: 50%; top: 24%; translate: -50% 0; background: var(--paper); border: 2px solid var(--ink); padding: 4px 10px; font-family: var(--display); font-size: clamp(14px, 1.6vw, 22px); line-height: 1.1; text-align: center; rotate: -6deg; }
 .disc__label small { font-family: var(--dot); font-size: .55em; }
 @property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 @keyframes disc { to { --spin: 360deg; } }
-@media (max-width: 900px) { .disc { display: none; } }
+@media (max-width: 900px) { .disc { width: 150px; right: -40px; top: 210px; translate: 0 0; } .disc__label { font-size: 11px; } }
+@media (max-width: 600px) { .disc { width: 120px; top: 168px; right: -34px; } .hero__stamp { display: none; } }
 
 /* 読み込み時、ずれた版が揃っていく */
 .hero__title::before { animation: register 1.4s cubic-bezier(.2, .9, .2, 1) both; }
@@ -376,6 +377,8 @@ button { font: inherit; color: inherit; }
    夜（日本時間19時〜5時）は机のライトだけが手元を照らす。文字が読めなくならないよう、外側も暗くしすぎない */
 .lamp-btn { border: 2px solid var(--ink); background: var(--paper); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; line-height: 1; display: grid; place-items: center; }
 .lamp-btn[aria-pressed="true"] { background: var(--ink); color: var(--yellow); }
+.bgm-btn[aria-pressed="true"] { animation: beat .54s steps(2) infinite; }
+@keyframes beat { 50% { transform: scale(1.12); } }
 .lamp {
   position: fixed; inset: 0; z-index: 55; pointer-events: none; opacity: 0; transition: opacity .8s;
   background: radial-gradient(circle 340px at var(--lx, 50%) var(--ly, 30%), rgba(255, 210, 120, .14), rgba(255, 210, 120, 0) 55%, rgba(14, 16, 34, .42) 100%);
