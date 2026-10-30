@@ -6,7 +6,7 @@
 2. 「Build and deployment」の Source を「GitHub Actions」にする。
 3. Actions タブで「Pages」ワークフローを手動実行（Run workflow）するか、`main` に変更が入るのを待つ。
 
-2026-10-31 時点では公開元が「ブランチ」になっており、トップに置いた入口（リポジトリ直下の index.html）が `site/` へ転送している。公開元を GitHub Actions に変えると、`site/` がそのままトップになり、note・YouTube の自動更新と共有用画像の絶対URL化も働く。変えた後は、リポジトリ直下の index.html と .nojekyll を消してよい。
+公開元を GitHub Actions にすると `site/` がそのままトップ（`https://nagamaki0311.github.io/TERRIF/`）になり、note・YouTube の1時間ごとの更新と共有用画像の絶対URL化も働く。2026-10-31 に設定済み。
 
 ## 2. 独自ドメイン（nk-pr.com のサブドメイン）
 
@@ -32,4 +32,4 @@
 
 ## 5. YouTube の最新動画を表示する
 
-YouTube Studio の設定 → チャンネル → 詳細設定で、チャンネルID（UC で始まる文字列）を確認し、`site/data/site.json` の `sns.youtube.channelId` に入れる。
+YouTube Studio の設定 → チャンネル → 詳細設定で、チャンネルID（UC で始まる文字列）を確認し、`site/data/site.json` の `sns.youtube.channelId` に入れる。2026-10-31 に設定済み（`UC8gDEJUJCMZRd7_iQvEudiw`）。

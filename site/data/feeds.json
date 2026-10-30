@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-30T18:15:27.252Z",
+ "updated": "2026-10-30T23:36:38.201Z",
  "note": [
   {
    "title": "文章/一番くじドライブ/旅行記について",
@@ -38,5 +38,42 @@
    "thumb": "https://assets.st-note.com/production/uploads/images/282703790/rectangle_large_type_2_097354a9c37855682498d2ba693b4151.jpeg?width=800"
   }
  ],
- "youtube": []
+ "youtube": [
+  {
+   "title": "ヨガとは - Street Fighter 6",
+   "link": "https://www.youtube.com/watch?v=CMA3SaR6B3g",
+   "date": "2026-10-13T15:26:08.000Z",
+   "thumb": "https://i4.ytimg.com/vi/CMA3SaR6B3g/hqdefault.jpg"
+  },
+  {
+   "title": "ダンスサガットダンス #shorts",
+   "link": "https://www.youtube.com/shorts/ml6avBfKx3o",
+   "date": "2026-08-31T15:05:48.000Z",
+   "thumb": "https://i2.ytimg.com/vi/ml6avBfKx3o/hqdefault.jpg"
+  },
+  {
+   "title": "異次元のやられ判定で炭化するダルシム #shorts",
+   "link": "https://www.youtube.com/shorts/NxjjcOB3bIQ",
+   "date": "2026-07-12T13:18:42.000Z",
+   "thumb": "https://i3.ytimg.com/vi/NxjjcOB3bIQ/hqdefault.jpg"
+  },
+  {
+   "title": "スモウとは - Street Fighter 6",
+   "link": "https://www.youtube.com/watch?v=ycfcWuQ-q68",
+   "date": "2026-06-20T02:33:55.000Z",
+   "thumb": "https://i2.ytimg.com/vi/ycfcWuQ-q68/hqdefault.jpg"
+  },
+  {
+   "title": "エアフラッシュナックルーク - Street Fighter 6",
+   "link": "https://www.youtube.com/watch?v=RAgnABmcBrQ",
+   "date": "2026-05-20T01:43:34.000Z",
+   "thumb": "https://i3.ytimg.com/vi/RAgnABmcBrQ/hqdefault.jpg"
+  },
+  {
+   "title": "ルーク初日ダイヤまで - Street Fighter 6",
+   "link": "https://www.youtube.com/watch?v=qZkjiN2Cmgs",
+   "date": "2026-05-16T02:33:33.000Z",
+   "thumb": "https://i2.ytimg.com/vi/qZkjiN2Cmgs/hqdefault.jpg"
+  }
+ ]
 }
