@@ -41,13 +41,13 @@ function objHTML(el, post, { v, tint }) {
 }
 
 /**
- * desk: 机の要素 / list: 物体を入れる ol / posts: 新しい順
+ * desk: 机の要素 / list: 物体を入れる要素 / posts: 新しい順
  * opts: { reduced, onOpen(post) }
  */
 export function createDesk(desk, list, posts, opts) {
   const M = window.Matter;
   const items = posts.map((post) => {
-    const el = document.createElement('li');
+    const el = document.createElement('div');
     const look = variantOf(post);
     objHTML(el, post, look);
     list.append(el);
@@ -55,7 +55,7 @@ export function createDesk(desk, list, posts, opts) {
   });
   // 投稿ではない小物（消しゴム・カセット・ハートのシール）。つまんで遊べるが、開かない
   for (const [kind, label] of [['eraser', 'MONO'], ['cassette', 'MIX 2026'], ['heart', '']]) {
-    const el = document.createElement('li');
+    const el = document.createElement('div');
     el.className = `obj decor decor--${kind}`;
     el.setAttribute('aria-hidden', 'true');
     if (label) el.append(Object.assign(document.createElement('span'), { textContent: label }));
