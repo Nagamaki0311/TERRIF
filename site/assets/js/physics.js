@@ -37,7 +37,7 @@ function objHTML(el, post, { v, tint }) {
     el.append(text, time);
   }
   if (v === 'bubble') el.style.setProperty('--w', `${120 + Math.min(70, [...post.text].length * 4)}px`);
-  else el.style.setProperty('--w', `${Math.min(300, 176 + [...post.text].length * 1.3) * (innerWidth > 900 ? 1.12 : 1)}px`);
+  else el.style.setProperty('--w', `${Math.min(300, 176 + [...post.text].length * 1.3) * (innerWidth > 900 ? 1.12 : innerWidth < 600 ? 0.86 : 1)}px`);
 }
 
 /**

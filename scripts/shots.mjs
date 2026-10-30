@@ -23,7 +23,7 @@ for (const [name, vp, opt] of [['pc', { width: 1440, height: 900 }, {}], ['sp', 
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${out}/${name}-1-top.png` });
   await page.locator('#now').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(3200);
+  await page.waitForTimeout(5500);
   await page.screenshot({ path: `${out}/${name}-2-desk.png` });
   const inside = await page.evaluate(() => {
     const d = document.querySelector('[data-desk]').getBoundingClientRect();
