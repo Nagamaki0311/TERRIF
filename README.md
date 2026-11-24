@@ -1,74 +1,36 @@
-# nk-pr ホームページ
+# 満員電車 — CHAOS LINE
 
-nαgαiki の個人ホームページ。平成の個人サイトとリソグラフ印刷の質感を、物理演算で遊べる「机の上」として組み立てる。スマホの投稿画面から一言を置くと、約1分でサイトに反映される。nk-pr.com のサブドメインで公開予定。
+架空の通勤車両に乗客を配置し、ストレスの伝播からトラブルを仕掛けるWeb戦略パズル。通常50種・特殊10種のイベント、5種族と年代、15駅の乗降を扱います。
 
-- サイト本体: `site/`（静的な HTML/CSS/JS。Matter.js を同梱）
-- 公開: GitHub Pages（`.github/workflows/pages.yml`）。準備と投稿の手順は docs/admin.md
-- デザインと調査: docs/design.md
+## 開発
 
-## コマンド
+Node.js 24以降を利用します。
 
-| 目的 | コマンド |
-|---|---|
-| 手元で表示 | `node scripts/serve.mjs`（http://127.0.0.1:8080/） |
-| 画面の撮影と検査（Playwright） | `node scripts/shots.mjs <出力先>` |
-| note・YouTube の取得 | `node scripts/fetch-feeds.mjs` |
+```sh
+npm ci
+npm run dev
+```
 
-以下は、このリポジトリの元になった開発テンプレート（project001）の説明。
+開発サーバーはポート5173で起動します。既存チェックアウトを使い、タスクごとにworktreeを作る必要はありません。
 
+```sh
+npm run check
+npm test
+npm run build
+```
 
-## セットアップ
+`dist/` に静的サイトを生成します。GitHub Pagesのワークフローは同ディレクトリを公開対象にします。
 
-1. `git clone`等でこのリポジトリを取得する。
-2. （任意）`bash .claude/bootstrap.sh`を実行し、Optional Dependency（Agent-Reach/Code Review Graph/Context7/GitHub CLI等）の導入状況を確認する。インストールは行わず案内のみを表示するため、実行しなくてもproject001は完全に動作する。
-3. AGENTS.mdの開発フロー（User → Manager → Planner → Developer → Reviewer → Manager → Complete）に従って進める。
+## 遊び方
 
-## 使い方
+待機列の駒を選び、空き区画へ配置します。ストレス80以上の駒は隣接駒へ25を伝えます。伝播で新たに閾値へ達した乗客を含む組合せがトラブルを生み、種類・同時成立・連鎖の深さがカオススコアになります。配置候補にカーソルを合わせると結果を予告します。
 
-新規アプリを開発する場合、このリポジトリをコピーして雛形として使う。個別アプリの仕様・実装コードはproject001自体には追加しない。以降はAGENTS.mdの開発フローに従って進める。
+全員配置して発車。既存駒の移動は各駅2回、扉際は3人まで。15駅の終着、または混雑率200%で終了します。同じシードは同じ乗客・乗降を再現します。盤面は矢印キーとEnterでも操作できます。
 
-## 構成
+## 設計と素材
 
-- AGENTS.md
-  - 開発方針・設計原則・ワークフロー（全AIエージェント共通、最優先で読む）
+ゲームロジックは `src/game/`、画面は `src/main.ts`、音は `src/audio.ts` に分離しています。ルールとイベント条件は `docs/train-plan.md` / `docs/train-events.md`、体験設計は `docs/train-experience.md` に記録しています。
 
-- REVIEW.md
-  - レビュー方針（敵対的検証 / Adversarial Review）。reviewer Agentが従う
+駒のSVGと16bitサンプルベースのBGM・効果音は独自制作です。音の制作と検査記録は `docs/train-audio.md`、音源情報は `public/audio/credits.json` を参照してください。音は最初の操作後に有効になり、音設定からBGM・音量・ミュートを変更できます。
 
-- CLAUDE.md
-  - Claude Code固有の設定・運用ルール（AGENTS.mdをimportする）
-
-- .claude/agents
-  - planner / designer / researcher / developer / reviewer
-
-- .claude/skills/design-principles
-  - UI/UXデザインの品質判断基準（designer/developer/reviewerが使用）
-
-- .claude/settings.json
-  - SessionStart / PreCompact / PostToolUse / SubagentStop / SessionEnd Hook（セッション継続性・ドキュメント品質の補助）、subagentStatusLine（サブエージェント進捗の可視化）、enabledPlugins（Frontend Designをproject scopeで有効化）。詳細はdocs/agents.md・docs/design-workflow.md
-
-- .claude/bootstrap.sh
-  - Optional Dependency（Capability Layer）の導入状況を案内のみで表示する検出スクリプト。インストールは行わない
-
-- .claude/commands/init-project.md
-  - `/init-project`コマンド。新規プロジェクトでの初期化手順（本READMEの該当節）を実行する
-
-- docs
-  - tasks.md: タスクと状態管理
-  - progress.md: 作業履歴
-  - decisions.md: 設計判断の記録
-  - agents.md: Agent構成・モデル構成・Hook/Status Line構成の詳細
-  - agent-reach.md: [Agent-Reach](https://github.com/Panniantong/Agent-Reach) 対応（Optional Dependency、検出・フォールバック方針）
-  - code-review-graph.md: [Code Review Graph](https://github.com/tirth8205/code-review-graph) 対応（Optional Dependency、影響範囲解析）
-  - context7.md: [Context7](https://github.com/upstash/context7) 対応（Optional Dependency、ライブラリドキュメント確認）
-  - capability-layer.md: 外部ツール検出の共通規約（Capability Layer）
-  - research-workflow.md: 外部調査ワークフロー
-  - design-workflow.md: デザインワークフロー（Designer/Claude Design/Frontend Designプラグインの連携）
-  - status-line.md: サブエージェント進捗の可視化（Status Line）の仕様
-
-## 開発フロー
-
-User → Manager → Planner → Developer → Reviewer → Manager → Complete
-（外部調査が必要な場合のみResearcherが、UI/UX実装を伴う場合のみDesignerが加わる）
-
-詳細は AGENTS.md・REVIEW.md・docs/agents.md・docs/design-workflow.md を参照。
+車両寸法、乗客属性の出現率、得点係数はゲーム用の仮定です。現実の車両・路線・人物の性質やトラブル頻度の再現を示すものではありません。外部資料の取得状況は `docs/train-research.md` に記録しています。

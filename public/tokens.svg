@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Original passenger portraits. Each symbol uses the same 64 × 64 canvas. -->
+  <symbol id="young" viewBox="0 0 64 64">
+    <title>若人</title>
+    <path d="M8 59 12 41Q16 30 24 29H40Q48 30 52 41L56 59Z" fill="#e4b53c" stroke="#172d35" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M18 39 24 51H40L46 39 40 32H24Z" fill="#86611e"/>
+    <path d="M22 28H42V38Q32 47 22 38Z" fill="#f3d2a7" stroke="#172d35" stroke-width="2.5"/>
+    <path d="M18 21Q18 7 32 7T46 21V27Q45 38 32 39 19 38 18 27Z" fill="#f3d2a7" stroke="#172d35" stroke-width="3"/>
+    <path d="M17 24 16 17 21 7 34 4 46 10 48 22 39 18 35 23 29 17 23 24Z" fill="#172d35"/>
+    <path d="M25 29H27M37 29H39" stroke="#172d35" stroke-width="3" stroke-linecap="round"/>
+    <path d="M23 46 20 57M41 46 44 57" stroke="#fff1c7" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="worker" viewBox="0 0 64 64">
+    <title>働人</title>
+    <path d="M7 59V45L20 36H44L57 45V59Z" fill="#477eb3" stroke="#172d35" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M21 36 32 43 43 36 38 59H26Z" fill="#f0f1e8"/>
+    <path d="M22 29H42V37L32 44 22 37Z" fill="#f3d2a7" stroke="#172d35" stroke-width="2.5"/>
+    <path d="M19 18Q19 8 32 8T45 18V27Q44 38 32 39 20 38 19 27Z" fill="#f3d2a7" stroke="#172d35" stroke-width="3"/>
+    <path d="M18 25V13L23 6H42L47 13V25L41 21V16H25V21Z" fill="#172d35"/>
+    <path d="M25 29H27M37 29H39" stroke="#172d35" stroke-width="3" stroke-linecap="round"/>
+    <path d="M32 43 36 47 34 59H30L28 47Z" fill="#172d35"/>
+    <path d="M19 39 22 49 16 51M45 39 42 49 48 51" fill="none" stroke="#172d35" stroke-width="2.5" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="elder" viewBox="0 0 64 64">
+    <title>老人</title>
+    <path d="M9 59V49Q9 38 23 35H41Q55 38 55 49V59Z" fill="#9b8db1" stroke="#172d35" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M23 31H41V39L32 46 23 39Z" fill="#f3d2a7" stroke="#172d35" stroke-width="2.5"/>
+    <path d="M17 24Q15 10 25 8 32 3 39 8 49 10 47 24L45 31Q42 40 32 40T19 31Z" fill="#f3d2a7" stroke="#172d35" stroke-width="3"/>
+    <path d="M18 27 14 23V17L19 9 28 7 32 11 36 7 45 9 50 17V23L46 27 42 18 35 20 29 16 23 20Z" fill="#d7dedb" stroke="#172d35" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M19 24H29V31H20ZM35 24H45L44 31H35Z" fill="#f6f3df" stroke="#172d35" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M29 27H35M23 39 32 48 41 39M32 48V59" fill="none" stroke="#172d35" stroke-width="2.5" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="tourist" viewBox="0 0 64 64">
+    <title>客人</title>
+    <path d="M8 59 10 45Q13 37 23 35H41Q51 37 54 45L56 59Z" fill="#ce775b" stroke="#172d35" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M23 30H41V38Q32 46 23 38Z" fill="#f3d2a7" stroke="#172d35" stroke-width="2.5"/>
+    <path d="M19 18H45V28Q44 39 32 40 20 39 19 28Z" fill="#f3d2a7" stroke="#172d35" stroke-width="3"/>
+    <path d="M17 17 21 6H43L47 17 56 20V25H8V20Z" fill="#e8dfbf" stroke="#172d35" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M19 16H45" stroke="#172d35" stroke-width="4"/>
+    <path d="M25 30H27M37 30H39" stroke="#172d35" stroke-width="3" stroke-linecap="round"/>
+    <path d="M44 39 23 59" stroke="#172d35" stroke-width="5"/>
+    <path d="M44 39 23 59" stroke="#f1dbad" stroke-width="2"/>
+  </symbol>
+
+  <symbol id="rest" viewBox="0 0 64 64">
+    <title>休人</title>
+    <path d="M8 59V49Q8 39 21 36H43Q56 39 56 49V59Z" fill="#64a18a" stroke="#172d35" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M22 30H42V38L32 47 22 38Z" fill="#f3d2a7" stroke="#172d35" stroke-width="2.5"/>
+    <path d="M19 19Q19 8 32 8T45 19V28Q44 39 32 40 20 39 19 28Z" fill="#f3d2a7" stroke="#172d35" stroke-width="3"/>
+    <path d="M18 25 15 19 18 10 27 5 38 7 45 5 49 14 46 25 40 19 31 23 25 18Z" fill="#172d35"/>
+    <path d="M25 30H27M37 30H39" stroke="#172d35" stroke-width="3" stroke-linecap="round"/>
+    <path d="M21 38 25 50 32 46 39 50 43 38" fill="#d4e5da" stroke="#172d35" stroke-width="2.5" stroke-linejoin="round"/>
+  </symbol>
+</svg>

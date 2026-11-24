@@ -1,0 +1,18 @@
+{
+  "title": "Night Express",
+  "composition": "Original sixteen-bar instrumental composition created for this project. No external recordings, melodies, or sound effects used.",
+  "tempoBpm": 112,
+  "timeSignature": "4/4",
+  "sourceSampleRate": 22050,
+  "sourceBitDepth": 16,
+  "music": "Sample-style reed lead, plucked arpeggios, soft string pad, bass, and drums. Original notes and arrangement; circular short-room delays.",
+  "effects": "Original damped modal synthesis of wood and metal bodies with deterministic noise transients.",
+  "files": [
+    "night-express.ogg",
+    "place.wav",
+    "reaction.wav",
+    "rare.wav",
+    "finish.wav"
+  ],
+  "validation": "PCM source peak 0.82, RMS 0.1441, zero source loop-edge difference. Subjective sound quality still requires listening."
+}
