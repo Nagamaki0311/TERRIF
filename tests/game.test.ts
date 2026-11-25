@@ -297,3 +297,23 @@ test("half-cell compression scores a crowding event and preview matches luggage 
   assert.equal(moved.passengers.find(p => p.id === waiting.id)?.bodySpace, 1);
   assert.deepEqual(preview(crowded, owner.id, "r0-b0-2"), evaluate(moved));
 });
+
+test("route objectives are reproducible and reward distinct trouble areas", async () => {
+  const { chooseObjective, routeChoices, routeBonuses } = await import("../src/game/index.ts");
+  const game = createGame("route-check");
+  const [first, second] = routeChoices(game);
+  assert.notEqual(first, second);
+  assert.deepEqual(routeChoices(createGame(game.seed)), [first, second]);
+  const chosen = chooseObjective(game, first);
+  assert.equal(chosen.objective, first);
+  assert.equal(chooseObjective(chosen, second), chosen);
+  const riders = [person("west", "r1-b0-0"), person("east", "r1-b4-0")];
+  const events = riders.map(rider => ({
+    id: rider.id, type: "N01", name: "test", points: 50, wave: 1,
+    participants: [rider.id], sources: [], rare: false,
+  }));
+  const evaluation = { passengers: riders, waves: [], events, score: 100, maxChain: 1 };
+  assert.deepEqual(routeBonuses(evaluation, 3), { routeBonus: 250, objectiveBonus: 400 });
+  assert.deepEqual(routeBonuses({ ...evaluation, events: [events[0], events[0]] }, 3),
+    { routeBonus: 0, objectiveBonus: 0 });
+});

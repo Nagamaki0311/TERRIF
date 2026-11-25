@@ -65,6 +65,8 @@ export interface Evaluation {
   events: TroubleEvent[];
   score: number;
   maxChain: number;
+  routeBonus?: number;
+  objectiveBonus?: number;
 }
 export interface Snapshot {
   passengers: Passenger[];
@@ -73,6 +75,7 @@ export interface Snapshot {
 }
 export interface GameState extends Snapshot {
   seed: string;
+  objective: number | null;
   station: number;
   score: number;
   schedule: Passenger[][];

@@ -1701,3 +1701,50 @@ strong, b, .count, .card-tags, .preview-score {
   .door-jumps { flex: 1; justify-content: space-around; }
   .door-jumps button { min-height: 36px; font-size: 11px; }
 }
+
+.thermal-cell,
+.boarding-passenger {
+  pointer-events: none;
+}
+.thermal-cell { fill: none; }
+.heat-1 { fill: #6678d0; fill-opacity: .34; }
+.heat-2 { fill: #a64baa; fill-opacity: .43; }
+.heat-3 { fill: #d24f46; fill-opacity: .57; }
+.heat-4 { fill: #e88b28; fill-opacity: .76; }
+.objective-cell {
+  stroke: #214653;
+  stroke-width: 24;
+  stroke-dasharray: 65 28;
+}
+.thermal-key i {
+  width: 34px;
+  background: linear-gradient(90deg, #6678d0, #a64baa, #d24f46, #e88b28);
+}
+.objective-panel h2 { font-size: 13px; }
+.objective-panel p { font-size: 12px; margin-top: 5px; }
+.objective-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.objective-choices button {
+  border: 1px solid var(--teal);
+  padding-inline: 7px;
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .boarding-step use { animation: boarding-step 130ms ease-in-out infinite alternate; }
+  @keyframes boarding-step {
+    from { transform: translateY(0); }
+    to { transform: translateY(-3px); }
+  }
+}
+@media (max-width: 760px) {
+  .objective-panel p { font-size: 11px; }
+}
+@media (max-width: 760px) {
+  .legend .thermal-key { order: -1; }
+}
+.ride-result summary { cursor: pointer; font-size: 12px; }
+.ride-result ul { padding-left: 18px; font-size: 12px; }

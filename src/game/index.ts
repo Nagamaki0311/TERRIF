@@ -1,6 +1,6 @@
 import { capacity, cellById, cells } from "./board.ts";
 import { evaluate } from "./evaluation.ts";
-import { generateSchedule, createInitialPassengers, initialPassengerCount } from "./generation.ts";
+import { generateSchedule, createInitialPassengers, initialPassengerCount, seededRandom } from "./generation.ts";
 import { allocatePassenger, hasLegalPlacement, normalizeBodySpace } from "./occupancy.ts";
 import type { Evaluation, GameState, Snapshot } from "./types.ts";
 
@@ -10,6 +10,7 @@ export {
   capacity,
   maximumOccupancy,
   adjacent,
+  exitPath,
   cellById,
 } from "./board.ts";
 export { eventDefinitions } from "./catalog.ts";
@@ -21,6 +22,7 @@ export function createGame(seed: string): GameState {
   const schedule = generateSchedule(seed);
   return {
     seed,
+    objective: null,
     station: 0,
     passengers: createInitialPassengers(seed, schedule[0]),
     waiting: schedule[0].slice(initialPassengerCount(seed)).map((person) => ({ ...person })),
@@ -63,15 +65,55 @@ export function canPlace(
   return allocatePassenger(state.passengers, person, cellId) !== null;
 }
 
+/** Four sectors around the four boarding doors. */
+export function sectorAt(x: number): number {
+  return Math.min(3, Math.max(0, Math.floor((x - 960) / 4520)));
+}
+
+export function routeChoices(state: GameState): number[] {
+  const offset = Math.floor(seededRandom(state.seed + ":route:" + state.station)() * 4);
+  const first = (offset + state.station) % 4;
+  return [first, (first + 2) % 4];
+}
+
+export function chooseObjective(state: GameState, sector: number): GameState {
+  if (state.finished || state.objective !== null || !routeChoices(state).includes(sector)) return state;
+  return { ...state, objective: sector };
+}
+
+export function routeBonuses(result: Evaluation, objective: number | null) {
+  const byId = new Map(result.passengers.map(person => [person.id, person.cellId]));
+  const sectors = new Set<number>();
+  let fulfilled = false;
+  for (const event of result.events) {
+    const positions = event.participants.flatMap(id => {
+      const cellId = byId.get(id);
+      const cell = cellId ? cellById.get(cellId) : undefined;
+      return cell ? [cell.x + cell.width / 2] : [];
+    });
+    if (!positions.length) continue;
+    const sector = sectorAt(positions.reduce((sum, x) => sum + x, 0) / positions.length);
+    sectors.add(sector);
+    if (sector === objective) fulfilled = true;
+  }
+  // Reward distinct trouble sites once per ride, regardless of event count in one spot.
+  return {
+    routeBonus: Math.max(0, sectors.size - 1) * 250,
+    objectiveBonus: fulfilled ? 400 : 0,
+  };
+}
+
 function commit(
   state: GameState,
   result: Evaluation,
   finished: GameState["finished"],
 ): GameState {
+  const bonuses = routeBonuses(result, state.objective);
+  const score = result.score + bonuses.routeBonus + bonuses.objectiveBonus;
   return {
     ...state,
     passengers: result.passengers,
-    score: state.score + result.score,
+    score: state.score + score,
     scoredEvents: [
       ...new Set([
         ...state.scoredEvents,
@@ -85,7 +127,7 @@ function commit(
       ]),
     ],
     history: [],
-    lastEvaluation: result,
+    lastEvaluation: { ...result, ...bonuses, score },
     finished,
   };
 }
@@ -198,7 +240,8 @@ export function depart(state: GameState): GameState {
     station,
     passengers,
     waiting,
-    movesLeft: 2,
+    objective: null,
+    movesLeft: committed.lastEvaluation?.objectiveBonus ? 3 : 2,
     finished: noSpace ? "no-space" : null,
   };
 }
