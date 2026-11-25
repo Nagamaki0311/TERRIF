@@ -1563,12 +1563,19 @@ strong, b, .count, .card-tags, .preview-score {
   .token-body.agitated { animation-name: passenger-tense; }
   .is-flaring .token-reaction { animation: passenger-react .23s ease-out; }
   .page-hidden .token-body, .page-hidden .token-reaction { animation-play-state: paused; }
-  @keyframes passenger-breathe { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(1.025); } }
-  @keyframes passenger-shift { 0%,60%,100% { transform: rotate(0deg); } 30% { transform: rotate(1.8deg) translateY(-1%); } }
-  @keyframes passenger-settle { 0%,100% { transform: rotate(-.8deg); } 50% { transform: rotate(.8deg) translateY(1.3%); } }
-  @keyframes passenger-look { 0%,45%,100% { transform: rotate(0deg); } 20% { transform: rotate(-2deg); } 75% { transform: rotate(1.5deg); } }
-  @keyframes passenger-tense { 0%,15%,45%,100% { transform: translateX(0); } 20%,30% { transform: translateX(-1.8%); } 25%,35% { transform: translateX(1.8%); } }
-  @keyframes passenger-react { 0% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-6%) rotate(-4deg); } 65% { transform: translateY(1%) rotate(3deg); } 100% { transform: translateY(0) rotate(0); } }
+  /* The portrait moves inside its fixed 64-unit SVG viewport. */
+  @keyframes passenger-breathe { 50% { transform: translateY(-.22px); } }
+  @keyframes passenger-shift { 30% { transform: translateX(.25px); } }
+  @keyframes passenger-settle { 50% { transform: translateY(.2px); } }
+  @keyframes passenger-look {
+    20% { transform: translateX(-.25px); }
+    75% { transform: translateX(.2px); }
+  }
+  @keyframes passenger-tense {
+    20%, 30% { transform: translateX(-.3px); }
+    25%, 35% { transform: translateX(.3px); }
+  }
+  @keyframes passenger-react { 30% { transform: translateY(-2px); } }
 }
 @media (prefers-reduced-motion: reduce) {
   .token-body, .token-reaction { animation: none !important; }
@@ -1671,7 +1678,10 @@ strong, b, .count, .card-tags, .preview-score {
   @keyframes receive-ring { from { transform: scale(.8); opacity: 1; } to { transform: scale(1.3); opacity: .15; } }
   @keyframes event-stamp { from { transform: scale(1.8); opacity: 0; } 65% { transform: scale(.9); opacity: 1; } to { transform: scale(1); opacity: 1; } }
   @keyframes score-land { from { transform: translateY(5px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  @keyframes cramped-reaction { 0%,100% { transform: scaleX(1) rotate(0); } 35% { transform: scaleX(.85) rotate(3deg); } 70% { transform: scaleX(.95) rotate(-2deg); } }
+  @keyframes cramped-reaction {
+    35% { transform: translateX(-2px); }
+    70% { transform: translateX(1px); }
+  }
 }
 @media (max-width: 760px) {
   .selected-trip { margin: 2px 0; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
