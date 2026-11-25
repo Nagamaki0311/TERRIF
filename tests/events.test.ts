@@ -8,7 +8,7 @@ import {
 } from "../src/game/events.ts";
 import { rareCandidates, selectRare } from "../src/game/rare.ts";
 import { eventDefinitions } from "../src/game/catalog.ts";
-import { createGame, evaluate } from "../src/game/index.ts";
+import { createGame, evaluate, allocatePassenger, cellById, getCellUsage, getSpaceCapacity } from "../src/game/index.ts";
 import type { Passenger, TroubleEvent } from "../src/game/types.ts";
 
 let serial = 0;
@@ -20,7 +20,7 @@ function p(cellId: string, patch: Partial<Passenger> = {}): Passenger {
     sensitivity: 1,
     luggage: false,
     stress: 85,
-    destination: 14,
+    destination: 6,
     cellId,
     boardedAt: 0,
     belongings: "none",
@@ -36,7 +36,7 @@ const seat = "r0-b1-2",
   front = "r1-b1-2",
   nextSeat = "r0-b1-3",
   nextFront = "r1-b1-3";
-const door = "r2-d1";
+const door = "r3-d1";
 const fixtures: Record<string, () => Passenger[]> = {
   N01: () => [p(front), p(nextFront)],
   N02: () => [p(front, { posture: "lean" }), p("r2-b1-2")],
@@ -128,8 +128,8 @@ const fixtures: Record<string, () => Passenger[]> = {
     p("r2-b1-2", { destination: 1 }),
   ],
   N36: () => [
-    p("r1-d1", { destination: 1, attention: "absorbed" }),
-    p("r1-d1", { posture: "lean" }),
+    p("r0-d1", { destination: 1, attention: "absorbed" }),
+    p("r0-d1", { posture: "lean" }),
   ],
   N37: () => [
     p(door, { group: "g1", destination: 1 }),
@@ -193,6 +193,21 @@ const fixtures: Record<string, () => Passenger[]> = {
     p(door, { activity: "screen", attention: "absorbed" }),
   ],
 };
+
+function reserveFixture(people: Passenger[]): Passenger[] {
+  const placed: Passenger[] = [];
+  const ordered = [...people].sort((a,b) => Number(cellById.get(b.cellId!)!.kind === "seat") - Number(cellById.get(a.cellId!)!.kind === "seat") || Number(b.luggage)-Number(a.luggage));
+  for (const person of ordered) {
+    const allocated = allocatePassenger(placed, person, person.cellId!);
+    assert.ok(allocated, `fixture cannot allocate ${person.id} at ${person.cellId}`);
+    placed.push(allocated);
+  }
+  for (const person of people) Object.assign(person, placed.find(other => other.id===person.id));
+  for(const cell of cellById.values()) assert.ok(getCellUsage(people,cell.id)<=getSpaceCapacity(cell.id));
+  return people;
+}
+for(const [type,build] of Object.entries(fixtures)) fixtures[type] = () => reserveFixture(build());
+
 for (const [type, build] of Object.entries(fixtures)) {
   test(`${type} has a reachable and selectable normal-event fixture`, () => {
     const people = build();
@@ -227,10 +242,10 @@ for (const [type, build] of Object.entries(fixtures)) {
   });
 }
 
-test("catalog has exactly fifty ordinary and ten special definitions", () => {
-  assert.equal(eventDefinitions.filter((event) => !event.rare).length, 50);
+test("catalog has exactly fifty-one ordinary and ten special definitions", () => {
+  assert.equal(eventDefinitions.filter((event) => !event.rare).length, 51);
   assert.equal(eventDefinitions.filter((event) => event.rare).length, 10);
-  assert.equal(new Set(eventDefinitions.map((event) => event.id)).size, 60);
+  assert.equal(new Set(eventDefinitions.map((event) => event.id)).size, 61);
 });
 
 test("selection canonical keys, participant budgets and integer wave scoring", () => {
@@ -287,6 +302,7 @@ function rareFixture(
       { 若人: 1, 働人: 2, 老人: 3, 客人: 2, 休人: 1 }[person.species] +
       Math.min(3, Math.floor((person.age - 10) / 20));
   }
+  reserveFixture(groups.flat());
   return {
     people: groups.flat(),
     events: groups.map((group, index) =>
@@ -310,15 +326,15 @@ const rareFixtures: Record<string, () => RareFixture> = {
       groups.forEach((group, index) =>
         relocate(
           group,
-          group.map(() => `r2-d${index}`),
+          group.map(() => `r3-d${index}`),
         ),
       );
     }),
   S03: () =>
     rareFixture(["N11", "N12", "N13"], (groups) => {
       relocate(groups[0], ["r1-b0-1", "r2-b0-1"]);
-      relocate(groups[1], ["r2-d0", "r2-d0"]);
-      relocate(groups[2], ["r2-d1", "r2-d1"]);
+      relocate(groups[1], ["r3-d0", "r3-d0"]);
+      relocate(groups[2], ["r3-d1", "r3-d1"]);
     }),
   S04: () =>
     rareFixture(["N19", "N20", "N21"], (groups) => {
@@ -358,26 +374,26 @@ const rareFixtures: Record<string, () => RareFixture> = {
     rareFixture(
       ["N30", "N32", "N37"],
       (groups) => {
-        relocate(groups[0], ["r2-d0", "r2-d0"]);
+        relocate(groups[0], ["r3-d0", "r3-d0"]);
         relocate(groups[1], ["r0-b2-2", "r1-b2-2", "r2-b2-2"]);
-        relocate(groups[2], ["r2-d3", "r2-d3", "r2-d3"]);
+        relocate(groups[2], ["r3-d3", "r3-d3", "r3-d3"]);
         groups.flat().forEach((person) => {
-          if (person.destination === 1) person.destination = 9;
+          if (person.destination === 1) person.destination = 4;
         });
       },
-      8,
+      3,
     ),
   S08: () =>
     rareFixture(["N10", "N25", "N49"], (groups) => {
       relocate(groups[0], ["r0-b1-0", "r0-b1-1"]);
       relocate(groups[1], ["r0-b2-0", "r0-b2-1"]);
-      relocate(groups[2], ["r2-d3", "r2-d3"]);
+      relocate(groups[2], ["r3-d3", "r3-d3"]);
     }),
   S09: () => {
     const result = rareFixtures.S06();
-    result.station = 9;
+    result.station = 4;
     result.people[0].boardedAt = 0;
-    result.people[4].boardedAt = 9;
+    result.people[4].boardedAt = 4;
     result.events[0].wave = 3;
     return result;
   },
@@ -386,8 +402,8 @@ const rareFixtures: Record<string, () => RareFixture> = {
       relocate(groups[0], ["r1-b0-0", "r1-b0-1"]);
       relocate(groups[1], ["r1-b2-2", "r2-b2-2"]);
       relocate(groups[2], ["r1-b3-2", "r0-b3-2"]);
-      relocate(groups[3], ["r2-d0", "r2-d0"]);
-      relocate(groups[4], ["r2-d3", "r2-d3"]);
+      relocate(groups[3], ["r3-d0", "r3-d0"]);
+      relocate(groups[4], ["r3-d3", "r3-d3"]);
     }),
 };
 for (const [type, build] of Object.entries(rareFixtures)) {
@@ -492,13 +508,12 @@ for (const [type, build] of Object.entries(fixtures)) {
     const original = build();
     let reached = false;
     for (const trigger of original) {
+      for (let initial = 35; initial <= 75; initial += 5) {
       const people = original.map((person) => ({
         ...person,
         stress:
           person.id === trigger.id
-            ? person.cellId!.startsWith("r0") || person.cellId!.startsWith("r3")
-              ? 69
-              : 60
+            ? initial
             : 100,
       }));
       const station = people.some((person) => person.boardedAt < 0) ? 1 : 0;
@@ -518,6 +533,8 @@ for (const [type, build] of Object.entries(fixtures)) {
         reached = true;
         break;
       }
+      }
+      if(reached)break;
     }
     assert.ok(
       reached,
@@ -536,14 +553,12 @@ for (const [type, build] of Object.entries(rareFixtures)) {
       );
       let found = false;
       for (const target of group) {
+        for(let initial=35;initial<=75;initial+=5){
         const attempt = group.map((person) => ({
           ...person,
           stress:
             person.id === target.id
-              ? person.cellId!.startsWith("r0") ||
-                person.cellId!.startsWith("r3")
-                ? 69
-                : 60
+              ? initial
               : 100,
         }));
         const result = evaluate({
@@ -559,6 +574,8 @@ for (const [type, build] of Object.entries(rareFixtures)) {
           found = true;
           break;
         }
+        }
+        if(found)break;
       }
       assert.ok(found, `precondition ignition for ${source.type}`);
     }

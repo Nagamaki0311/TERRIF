@@ -9,6 +9,8 @@ import {
   createGame,
   depart,
   evaluate,
+  getCellUsage,
+  getSpaceCapacity,
   eventDefinitions,
   move,
   place,
@@ -31,7 +33,7 @@ function person(
     sensitivity: 2,
     luggage: false,
     stress: 60,
-    destination: 14,
+    destination: 6,
     cellId,
     boardedAt: 0,
     belongings: "none",
@@ -47,13 +49,19 @@ function state(people: Passenger[]): GameState {
   return { ...createGame("fixture"), passengers: people, waiting: [] };
 }
 
+
+function emptyGame(seed: string): GameState {
+  const game = createGame(seed);
+  return { ...game, passengers: [], waiting: game.waiting.map(person => ({...person,luggage:false,belongings:"none",luggageCellId:null})) };
+}
+
 test("physical board has four rows, uniform seats and independent door capacities", () => {
   assert.equal(cells.filter((cell) => cell.kind === "seat").length, 54);
-  assert.equal(cells.filter((cell) => cell.kind === "standing").length, 54);
+  assert.equal(cells.filter((cell) => cell.kind === "standing").length, 78);
   assert.equal(cells.filter((cell) => cell.kind === "door").length, 8);
   assert.equal(
     cells.reduce((sum, cell) => sum + cell.capacity, 0),
-    132,
+    156,
   );
   assert.equal(cells.filter((cell) => cell.priority).length, 12);
   assert.ok(
@@ -62,8 +70,8 @@ test("physical board has four rows, uniform seats and independent door capacitie
       .every((cell) => cell.width === 460),
   );
   assert.equal(new Set(cells.map((cell) => cell.id)).size, cells.length);
-  assert.equal(capacity * 2, 128);
-  assert.equal(stations.length, 15);
+  assert.equal(capacity * 2, 152);
+  assert.equal(stations.length, 7);
   for (const cell of cells)
     for (const other of cells) {
       if (cell === other) continue;
@@ -97,7 +105,7 @@ test("seeded demographics are reproducible and respect all species age ranges", 
     );
     assert.equal(person.age % 10, 0);
     assert.ok(
-      person.destination > person.boardedAt && person.destination <= 14,
+      person.destination > person.boardedAt && person.destination <= 6,
     );
     assert.equal(person.luggage, person.belongings !== "none");
     if (person.attention === "asleep") {
@@ -108,7 +116,7 @@ test("seeded demographics are reproducible and respect all species age ranges", 
 });
 
 test("placement, movement, undo and preview preserve passenger identities and original state", () => {
-  const original = createGame("actions");
+  const original = emptyGame("actions");
   const frozen = JSON.stringify(original);
   const id = original.waiting[0].id;
   const placed = place(original, id, "r1-b0-0");
@@ -126,7 +134,7 @@ test("placement, movement, undo and preview preserve passenger identities and or
   assert.deepEqual(undo(moved), placed);
   assert.deepEqual(undo(placed), original);
   const movedTwice = move(moved, id, "r1-b0-2");
-  assert.equal(move(movedTwice, id, "r1-d0"), movedTwice);
+  assert.equal(move(movedTwice, id, "r0-d0"), movedTwice);
   assert.equal(
     depart(original),
     original,
@@ -135,10 +143,10 @@ test("placement, movement, undo and preview preserve passenger identities and or
 });
 
 test("special door cells allow three people and reject a fourth", () => {
-  let game = createGame("door");
-  for (let i = 0; i < 3; i++) game = place(game, game.waiting[0].id, "r2-d0");
+  let game = emptyGame("door");
+  for (let i = 0; i < 3; i++) game = place(game, game.waiting[0].id, "r3-d0");
   assert.equal(game.passengers.length, 3);
-  assert.equal(place(game, game.waiting[0].id, "r2-d0"), game);
+  assert.equal(place(game, game.waiting[0].id, "r3-d0"), game);
 });
 
 test("all walking routes leave only by south doors, with seats as leaves", () => {
@@ -146,7 +154,7 @@ test("all walking routes leave only by south doors, with seats as leaves", () =>
     const path = exitPath(cell.id);
     assert.equal(path[0], cell.id);
     const exit = cellById.get(path[path.length - 1])!;
-    assert.equal(exit.row, 2);
+    assert.equal(exit.row, 3);
     assert.equal(exit.kind, "door");
     assert.ok(path.slice(1).every((id) => cellById.get(id)!.kind !== "seat"));
     for (let i = 1; i < path.length; i++)
@@ -195,16 +203,16 @@ test("priority-seat occupancy and luggage affect local burden", () => {
   );
 });
 
-test("128th placement produces one final evaluation and permanently finishes at 200 percent", () => {
+test("152nd placement produces one final evaluation and permanently finishes at 200 percent", () => {
   const passengers: Passenger[] = [];
   for (const cell of cells)
     for (
       let index = 0;
-      index < cell.capacity && passengers.length < 127;
+      index < cell.capacity && passengers.length < 151;
       index++
     )
       passengers.push(
-        person(`p${passengers.length}`, cell.id, { stress: 100 }),
+        person(`p${passengers.length}`, cell.id, { stress: 100, bodySpace: cell.kind === "door" && index===2 ? 0.5 : 1 }),
       );
   const free = cells.find(
     (cell) =>
@@ -217,14 +225,14 @@ test("128th placement produces one final evaluation and permanently finishes at 
   };
   const result = place(before, "last", free.id);
   assert.equal(result.finished, "capacity");
-  assert.equal(result.passengers.length, 128);
+  assert.equal(result.passengers.length, 152);
   assert.equal(depart(result), result);
   assert.equal(undo(result), result);
   assert.equal(place(result, "last", free.id), result);
   assert.ok(result.lastEvaluation);
 });
 
-test("fixed-seed full runs terminate after fourteen rides and produce actual varied trouble", () => {
+test("fixed-seed full runs terminate after six rides and produce actual varied trouble", () => {
   const order = [...cells].sort(
     (a, b) =>
       ({ door: 0, standing: 1, seat: 2 })[a.kind] -
@@ -256,9 +264,9 @@ test("fixed-seed full runs terminate after fourteen rides and produce actual var
         );
     }
     assert.equal(game.finished, "terminal");
-    assert.equal(rides, 14);
-    assert.equal(game.station, 14);
-    assert.equal(game.passengers.length, 0);
+    assert.equal(rides, 6);
+    assert.equal(game.station, 6);
+    assert.ok(game.passengers.length >= 80);
     assert.ok(game.score > 0);
     assert.ok(game.discovered.length >= 5);
     assert.ok(eventCount >= 10);
@@ -268,4 +276,24 @@ test("fixed-seed full runs terminate after fourteen rides and produce actual var
       ),
     );
   }
+});
+
+test("half-cell compression scores a crowding event and preview matches luggage relocation", () => {
+  const owner = person("owner", "r0-b0-0", {
+    luggage: true,
+    belongings: "hand",
+    luggageCellId: "r1-b0-0",
+    stress: 100,
+  });
+  const waiting = person("rider", null, { stress: 50 });
+  const initial = { ...state([owner]), waiting: [waiting] };
+  const crowded = place(initial, waiting.id, "r1-b0-0");
+  assert.equal(crowded.passengers.find(p => p.id === waiting.id)?.bodySpace, 0.5);
+  assert.equal(getCellUsage(crowded.passengers, "r1-b0-0"), 1);
+  const result = evaluate(crowded);
+  assert.ok(result.events.some(event => event.type === "N51"));
+  const moved = move(crowded, owner.id, "r0-b0-2");
+  assert.notEqual(moved, crowded);
+  assert.equal(moved.passengers.find(p => p.id === waiting.id)?.bodySpace, 1);
+  assert.deepEqual(preview(crowded, owner.id, "r0-b0-2"), evaluate(moved));
 });

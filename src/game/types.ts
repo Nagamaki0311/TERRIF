@@ -11,6 +11,7 @@ export interface Cell {
   priority: boolean;
   capacity: number;
   door: number | null;
+  recommendedCapacity?: number;
 }
 export interface Passenger {
   id: string;
@@ -21,6 +22,8 @@ export interface Passenger {
   stress: number;
   destination: number;
   cellId: string | null;
+  luggageCellId?: string | null;
+  bodySpace?: 0.5 | 1;
   boardedAt: number;
   belongings: "none" | "backpack" | "hand" | "wheeled";
   activity: "none" | "screen" | "call" | "talk" | "read" | "food";

@@ -1,3 +1,5 @@
+import { cells } from "./board.ts";
+import { allocatePassenger, getCellUsage } from "./occupancy.ts";
 import type { Passenger, Species } from "./types.ts";
 
 export function seededRandom(seed: string): () => number {
@@ -16,12 +18,16 @@ export function generateSchedule(seed: string): Passenger[][] {
   const random = seededRandom(seed);
   const pick = <T>(values: T[]): T =>
     values[Math.floor(random() * values.length)];
-  const counts = [12, 4, 6, 3, 3, 4, 6, 8, 10, 12, 14, 16, 14, 10, 0];
+  const initialCount = initialPassengerCount(seed);
+  const traffic = Math.max(54, 128 - initialCount);
+  const weights = [0.10, 0.14, 0.18, 0.22, 0.22, 0.14];
+  const counts = [...weights.map(weight => Math.round(traffic * weight)), 0];
+  counts[0] += initialCount;
   const roster: Passenger[][] = [];
   let serial = 0;
-  for (let station = 0; station < 15; station++) {
+  for (let station = 0; station < 7; station++) {
     const count =
-      station === 14 ? 0 : counts[station] + Math.floor(random() * 5) - 2;
+      station === 6 ? 0 : counts[station] + Math.floor(random() * 5) - 2;
     const people: Passenger[] = [];
     for (let i = 0; i < count; i++) {
       const draw = random();
@@ -77,9 +83,9 @@ export function generateSchedule(seed: string): Passenger[][] {
         initialStress + adjustment * 5 + 24 + Math.floor(random() * 14),
       );
       const destination =
-        random() < 0.45
-          ? 14
-          : station + 1 + Math.floor(random() * (14 - station));
+        random() < 0.94
+          ? 6
+          : station + 1 + Math.floor(random() * (6 - station));
       people.push({
         id: `p${serial++}`,
         species,
@@ -111,4 +117,48 @@ export function generateSchedule(seed: string): Passenger[][] {
     roster.push(people);
   }
   return roster;
+}
+
+export function initialPassengerCount(seed: string): number {
+  return 30 + Math.floor(seededRandom(`${seed}:initial-count`)() * 31);
+}
+
+export function createInitialPassengers(seed: string, roster: Passenger[]): Passenger[] {
+  const random = seededRandom(`${seed}:initial-layout`);
+  const seatGroups = new Map<string, typeof cells>();
+  for (const cell of cells.filter(cell => cell.kind === "seat")) {
+    const band = cell.id.split("-").slice(0, 2).join("-");
+    seatGroups.set(band, [...(seatGroups.get(band) ?? []), cell]);
+  }
+  const ranked: { cell: typeof cells[number]; rank: number; tie: number }[] = [];
+  for (const group of seatGroups.values()) {
+    group.sort((a,b) => a.x-b.x);
+    const used = new Set<number>();
+    let rank = 0;
+    for (let distance = 0; distance < group.length; distance += 2) {
+      for (const index of [distance, group.length-1-distance]) {
+        if (index < 0 || index >= group.length || used.has(index) || used.has(index-1) || used.has(index+1)) continue;
+        used.add(index); ranked.push({cell:group[index],rank:rank++,tie:random()});
+      }
+    }
+  }
+  ranked.sort((a,b) => a.rank-b.rank || a.tie-b.tie);
+  const people: Passenger[] = [];
+  for (const original of roster.slice(0, initialPassengerCount(seed))) {
+    const person = {...original, boardedAt: -1};
+    let placed: Passenger | null = null;
+    for (const entry of ranked) {
+      if (people.some(other => other.cellId && cells.find(cell => cell.id===other.cellId)?.row===entry.cell.row &&
+        Math.abs(cells.find(cell => cell.id===other.cellId)!.x-entry.cell.x)===460)) continue;
+      placed = allocatePassenger(people,person,entry.cell.id);
+      if (placed) break;
+    }
+    if (!placed) {
+      const choices = cells.filter(cell => cell.kind === "standing").map(cell => ({cell,tie:random()})).sort((a,b)=>getCellUsage(people,a.cell.id)-getCellUsage(people,b.cell.id)||a.tie-b.tie);
+      for (const {cell} of choices) { placed = allocatePassenger(people,person,cell.id); if(placed)break; }
+    }
+    if (!placed) throw new Error("Initial passenger layout exceeds available space");
+    people.push(placed);
+  }
+  return people;
 }

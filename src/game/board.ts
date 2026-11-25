@@ -27,22 +27,21 @@ for (let row = 0; row < 4; row++) {
       });
     }
   }
-  if (row === 1 || row === 2) {
-    doorStarts.forEach((x, door) =>
-      cells.push({
-        id: `r${row}-d${door}`,
-        x,
-        y: row * 450,
-        width: 1300,
-        height: 450,
-        row,
-        kind: "door",
-        priority: false,
-        capacity: 3,
-        door,
-      }),
-    );
-  }
+  doorStarts.forEach((x, door) => {
+    if (row === 0 || row === 3) {
+      cells.push({ id: `r${row}-d${door}`, x, y: row * 450, width: 1300,
+        height: 450, row, kind: "door", priority: false, capacity: 3,
+        recommendedCapacity: 2.5, door });
+    } else {
+      let offset = 0;
+      [434, 433, 433].forEach((width, column) => {
+        cells.push({ id: `r${row}-f${door}-${column}`, x: x + offset,
+          y: row * 450, width, height: 450, row, kind: "standing",
+          priority: false, capacity: 1, door });
+        offset += width;
+      });
+    }
+  });
 }
 export const cellById = new Map(cells.map((cell) => [cell.id, cell]));
 function sharesEdge(a: Cell, b: Cell): boolean {
@@ -71,25 +70,9 @@ export function adjacent(a: string | null, b: string | null): boolean {
     (a === b || neighbors.get(a)?.includes(b) === true)
   );
 }
-export const stations = [
-  "川瀬口",
-  "御園辻",
-  "青葉丘陵",
-  "杉越峠",
-  "天瀬谷",
-  "千草口",
-  "明日葉台",
-  "三日野町",
-  "南河原市",
-  "金嶺",
-  "北穂野",
-  "東さかい町",
-  "茶ノ辻",
-  "新宮前",
-  "湊中央",
-];
-export const capacity = 64;
-export const maximumOccupancy = 132;
+export const stations = ["南河原市", "金嶺", "北穂野", "東さかい町", "茶ノ辻", "新宮前", "湊中央"];
+export const capacity = 76;
+export const maximumOccupancy = 156;
 export function nearestDoor(cellId: string): number {
   const cell = cellById.get(cellId)!;
   const center = cell.x + cell.width / 2;
@@ -126,7 +109,7 @@ export function exitPath(
     const [id, record] = available[0];
     visited.add(id);
     const current = cellById.get(id)!;
-    if (current.row === 2 && current.kind === "door") return record.path;
+    if (current.row === 3 && current.kind === "door") return record.path;
     for (const neighborId of neighbors.get(id)!) {
       if (visited.has(neighborId)) continue;
       const neighbor = cellById.get(neighborId)!;

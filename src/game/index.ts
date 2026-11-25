@@ -1,6 +1,7 @@
 import { capacity, cellById, cells } from "./board.ts";
 import { evaluate } from "./evaluation.ts";
-import { generateSchedule } from "./generation.ts";
+import { generateSchedule, createInitialPassengers, initialPassengerCount } from "./generation.ts";
+import { allocatePassenger, hasLegalPlacement, normalizeBodySpace } from "./occupancy.ts";
 import type { Evaluation, GameState, Snapshot } from "./types.ts";
 
 export {
@@ -13,6 +14,7 @@ export {
 } from "./board.ts";
 export { eventDefinitions } from "./catalog.ts";
 export { evaluate } from "./evaluation.ts";
+export { getCellUsage, getSpaceCapacity, luggageCandidates, allocatePassenger } from "./occupancy.ts";
 export type * from "./types.ts";
 
 export function createGame(seed: string): GameState {
@@ -20,8 +22,8 @@ export function createGame(seed: string): GameState {
   return {
     seed,
     station: 0,
-    passengers: [],
-    waiting: schedule[0].map((person) => ({ ...person })),
+    passengers: createInitialPassengers(seed, schedule[0]),
+    waiting: schedule[0].slice(initialPassengerCount(seed)).map((person) => ({ ...person })),
     schedule,
     movesLeft: 2,
     history: [],
@@ -58,12 +60,7 @@ export function canPlace(
   );
   if (existing && person.cellId !== cellId && state.movesLeft <= 0)
     return false;
-  return (
-    state.passengers.filter(
-      (passenger) =>
-        passenger.id !== passengerId && passenger.cellId === cellId,
-    ).length < cell.capacity
-  );
+  return allocatePassenger(state.passengers, person, cellId) !== null;
 }
 
 function commit(
@@ -93,6 +90,14 @@ function commit(
   };
 }
 
+function finishIfBlocked(state: GameState): GameState {
+  if (state.passengers.length >= capacity * 2) return commit(state, evaluate(state), "capacity");
+  if (!state.waiting.length || state.waiting.some(person => hasLegalPlacement(state.passengers, person))) return state;
+  const movable = state.movesLeft > 0 && state.passengers.some(person =>
+    cells.some(cell => cell.id !== person.cellId && allocatePassenger(state.passengers, person, cell.id) !== null));
+  return movable ? state : commit(state, evaluate(state), "no-space");
+}
+
 export function place(
   state: GameState,
   passengerId: string,
@@ -108,14 +113,12 @@ export function place(
   )!;
   const next = {
     ...state,
-    passengers: [...state.passengers, { ...person, cellId }],
+    passengers: normalizeBodySpace([...state.passengers, allocatePassenger(state.passengers, person, cellId)!]),
     waiting: state.waiting.filter((passenger) => passenger.id !== passengerId),
     history: [...state.history, snapshot(state)],
     lastEvaluation: null,
   };
-  if (next.passengers.length >= capacity * 2)
-    return commit(next, evaluate(next), "capacity");
-  return next;
+  return finishIfBlocked(next);
 }
 
 export function move(
@@ -132,15 +135,15 @@ export function move(
     !canPlace(state, passengerId, cellId)
   )
     return state;
-  return {
+  return finishIfBlocked({
     ...state,
-    passengers: state.passengers.map((passenger) =>
-      passenger.id === passengerId ? { ...passenger, cellId } : passenger,
-    ),
+    passengers: normalizeBodySpace(state.passengers.map((passenger) =>
+      passenger.id === passengerId ? allocatePassenger(state.passengers, person, cellId)! : passenger,
+    )),
     movesLeft: state.movesLeft - 1,
     history: [...state.history, snapshot(state)],
     lastEvaluation: null,
-  };
+  });
 }
 
 export function undo(state: GameState): GameState {
@@ -164,32 +167,32 @@ export function preview(
   const person = [...state.waiting, ...state.passengers].find(
     (passenger) => passenger.id === passengerId,
   )!;
-  const passengers = [
-    ...state.passengers.filter((passenger) => passenger.id !== passengerId),
-    { ...person, cellId },
-  ];
-  return evaluate({ ...state, passengers });
+  const allocated = allocatePassenger(state.passengers, person, cellId)!;
+  const passengers = person.cellId
+    ? state.passengers.map((passenger) => passenger.id === passengerId ? allocated : passenger)
+    : [...state.passengers, allocated];
+  return evaluate({ ...state, passengers: normalizeBodySpace(passengers) });
 }
 
 export function depart(state: GameState): GameState {
   if (state.finished || state.waiting.length) return state;
   const committed = commit(state, evaluate(state), null);
   const station = state.station + 1;
-  if (station >= 14)
+  if (station >= 6)
     return {
       ...committed,
-      station: 14,
-      passengers: [],
+      station: 6,
+      passengers: committed.passengers,
       waiting: [],
       finished: "terminal",
     };
-  const passengers = committed.passengers.filter(
+  const passengers = normalizeBodySpace(committed.passengers.filter(
     (person) => person.destination > station,
-  );
+  ));
   const waiting = state.schedule[station].map((person) => ({ ...person }));
   const noSpace =
     waiting.length > 0 &&
-    passengers.length >= cells.reduce((sum, cell) => sum + cell.capacity, 0);
+    !waiting.some(person => hasLegalPlacement(passengers, person));
   return {
     ...committed,
     station,

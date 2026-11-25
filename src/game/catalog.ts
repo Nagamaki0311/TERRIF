@@ -1,6 +1,7 @@
 import type { EventDefinition } from "./types.ts";
 
 export const eventDefinitions: EventDefinition[] = [
+  { id: "N51", name: "半マスへの押し込み", description: "荷物で残り0.5マスの区画に入った乗客と、荷物の持ち主が連鎖で80以上になる", category: "空間・座席", points: 55, rare: false },
   {
     id: "N01",
     name: "肩の押し合い",

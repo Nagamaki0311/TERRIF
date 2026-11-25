@@ -88,7 +88,7 @@ export function rareCandidates(
     smallestGroup(
       history.filter((event) =>
         members([event]).some(
-          (p) => cell(p).row === 2 && cell(p).door !== null,
+          (p) => cell(p).row === 3 && cell(p).kind === "door",
         ),
       ),
       4,
@@ -96,7 +96,7 @@ export function rareCandidates(
       (group) => {
         const doors = new Set(
           members(group)
-            .filter((p) => cell(p).row === 2 && cell(p).door !== null)
+            .filter((p) => cell(p).row === 3 && cell(p).kind === "door")
             .map((p) => cell(p).door),
         );
         return (
@@ -150,7 +150,7 @@ export function rareCandidates(
       );
     }),
   );
-  if (station + 1 >= 8 && station + 1 <= 13) {
+  if (station >= 2 && station <= 5) {
     add(
       "S07",
       smallestGroup(
@@ -171,7 +171,7 @@ export function rareCandidates(
       (group) => containsTypes(group, ["N10", "N25", "N49"]),
     ),
   );
-  if (station >= 9 && station <= 13) {
+  if (station >= 3 && station <= 5) {
     add(
       "S09",
       smallestGroup(history, 3, 5, (group) => {
@@ -180,7 +180,7 @@ export function rareCandidates(
           types(group).size >= 3 &&
           group.some((event) => event.wave >= 3) &&
           includesCurrent(group) &&
-          passengers.some((p) => p.boardedAt <= 3) &&
+          passengers.some((p) => p.boardedAt <= 1) &&
           passengers.some((p) => p.boardedAt === station)
         );
       }),

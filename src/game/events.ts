@@ -22,9 +22,9 @@ const seatFront = (a: Passenger, b: Passenger) =>
   seated(a) && standing(b) && near(a, b);
 const normalStanding = (p: Passenger) => cell(p).kind === "standing";
 const southDoor = (p: Passenger) =>
-  cell(p).kind === "door" && cell(p).row === 2;
+  cell(p).kind === "door" && cell(p).row === 3;
 const northDoor = (p: Passenger) =>
-  cell(p).kind === "door" && cell(p).row === 1;
+  cell(p).kind === "door" && cell(p).row === 0;
 const endSeat = (p: Passenger) =>
   seated(p) &&
   (p.cellId!.endsWith("-0") ||
@@ -486,6 +486,12 @@ export function normalCandidates(
                 add("N44", [a, b, c, d]);
             }
     }
+  for (const person of high) {
+    if (person.bodySpace !== 0.5) continue;
+    for (const owner of high) {
+      if (owner.id !== person.id && owner.luggageCellId === person.cellId) add("N51", [person, owner]);
+    }
+  }
   return [...candidates.values()];
 }
 

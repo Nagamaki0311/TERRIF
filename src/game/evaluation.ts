@@ -1,5 +1,6 @@
-import { adjacent, cellById } from "./board.ts";
+import { adjacent, cellById, cells } from "./board.ts";
 import { normalCandidates, selectNormal, waveScore } from "./events.ts";
+import { getCellUsage } from "./occupancy.ts";
 import { rareCandidates, selectRare } from "./rare.ts";
 import type {
   Evaluation,
@@ -16,6 +17,8 @@ export function evaluate(state: GameState): Evaluation {
   const hasStandingNeed = passengers.some(
     (person) => standing(person) && person.sensitivity >= 4,
   );
+  const vacantSeats = cells.some(cell => cell.kind === "seat" && getCellUsage(passengers, cell.id) === 0);
+  const vacantStanding = cells.some(cell => cell.kind === "standing" && getCellUsage(passengers, cell.id) === 0);
   for (const person of passengers) {
     const cell = cellById.get(person.cellId!)!;
     const nearby = passengers.filter(
@@ -34,11 +37,20 @@ export function evaluate(state: GameState): Evaluation {
         : occupants === 1 && luggageNeighbors === 0
           ? 2
           : 0;
+    const sameRow = nearby.filter(other => cellById.get(other.cellId!)!.row === cell.row);
+    const left = sameRow.some(other => cellById.get(other.cellId!)!.x < cell.x);
+    const right = sameRow.some(other => cellById.get(other.cellId!)!.x > cell.x);
+    const unwantedSeatNeighbor = cell.kind === "seat" && vacantSeats && sameRow.some(other => cellById.get(other.cellId!)!.kind === "seat");
+    const standingInFront = cell.kind === "seat" && vacantStanding && nearby.some(other => cellById.get(other.cellId!)!.kind === "standing");
+    const relationBurden = (unwantedSeatNeighbor ? 6 : 0) + (standingInFront ? 5 : 0) +
+      (left && right && (vacantSeats || vacantStanding) ? 8 : 0) +
+      (person.bodySpace === 0.5 ? 14 : 0) +
+      (cell.kind === "door" && cell.row === 3 && (vacantSeats || vacantStanding) ? 5 : 0);
     const burden =
       (standing(person) ? person.sensitivity : 0) +
-      (cell.kind === "door" && occupants === 3 ? 3 : 0) +
+      (cell.kind === "door" && occupants === 3 ? 8 : 0) +
       luggageNeighbors * 2 +
-      (cell.priority && person.sensitivity < 4 && hasStandingNeed ? 2 : 0);
+      (cell.priority && person.sensitivity < 4 && hasStandingNeed ? 2 : 0) + relationBurden;
     person.stress = Math.min(
       100,
       Math.max(0, person.stress - recovery) + burden,
