@@ -1,6 +1,6 @@
 import './style.css';
 import { GameAudio } from './audio.ts';
-import { createGame, place, move, undo, depart, chooseObjective, routeChoices, sectorAt, exitPath, canPlace, adjacent, cells, stations, eventDefinitions, getCellUsage, getSpaceCapacity, capacity } from './game/index.ts';
+import { createGame, place, move, undo, depart, choosePerk, perkChoices, sectorAt, exitPath, canPlace, adjacent, cells, stations, eventDefinitions, getCellUsage, getSpaceCapacity, capacity } from './game/index.ts';
 import type { Cell, Evaluation, GameState, Passenger, Species, Wave } from './game/types.ts';
 
 // ===== SECTION: Session and presentation state =====
@@ -94,13 +94,13 @@ function render(): void {
       <section class="queue-panel" aria-label="乗車待ち"><div class="section-line"><h2>乗車待ち <span>${state.waiting.length}人</span></h2></div><div class="passenger-queue">${state.waiting.length ? state.waiting.map(renderPassengerCard).join('') : `<div class="empty-queue">${state.finished ? '運行終了' : '配置完了。発車できます。'}</div>`}</div></section>
     </div><aside class="sidebar" aria-label="選択中の乗客と区間目標">
       <section class="selection-panel" aria-label="選択中の乗客">${person ? renderPersonDetail(person) : '<h2 class="selected-name">乗客を選択</h2><p class="muted">選択した乗客の属性を表示します。</p>'}</section>
-      <section class="preview-panel objective-panel">${state.finished ? '' : '<h2>区間目標</h2>'}${renderObjective()}</section>
+      <section class="preview-panel objective-panel">${state.finished ? '' : '<h2>停車駅のバフ</h2>'}${renderObjective()}</section>
       <div class="sidebar-actions"><button class="depart-button" data-action="depart" ${state.waiting.length || animating || state.finished ? 'disabled' : ''}><span>${state.finished ? '運行終了' : '発車する'}</span><b aria-hidden="true">→</b></button><button class="undo-button" data-action="undo" ${!state.history.length || animating || state.finished ? 'disabled' : ''}>一手戻す</button>${state.finished ? '<button class="result-button" data-action="result">運行結果を見る</button>' : ''}</div>
       <section class="forecast"><h3>次駅の乗車</h3><strong>${state.schedule[Math.min(stations.length - 1, state.station + 1)].length}<small>人</small></strong><p>${nextComposition()}</p></section>
     </aside></div>
     <footer class="footer"><span>シード <b>${escape(state.seed)}</b></span></footer>
     <div id="live" class="sr-only" aria-live="polite">${escape(announcement)}</div>
-    ${animating ? `<div class="wave-overlay" role="status"><div><strong>${activeWave ? `${activeWave.index}連鎖` : '連鎖開始'}</strong></div><div><b>${activeWave?.events.length ?? 0}件${activeWave?.events.some(event => event.rare) ? ' · 特殊' : ''}</b>${activeWave?.score ? `<strong class="wave-points">+${activeWave.score.toLocaleString()}点</strong>` : ''}<button data-action="skip">結果へ進む</button></div></div>` : ''}
+    ${animating ? `<div class="wave-overlay" role="status"><div><strong>${activeWave?.index ? `${activeWave.index}連鎖` : '発火'}</strong></div><div>${activeWave?.events.length ? `<b class="wave-event">${escape((activeWave.events.find(event => event.rare) ?? activeWave.events[0]).name)}${activeWave.events.length > 1 ? ` ＋${activeWave.events.length - 1}件` : ''}</b>` : ''}${activeWave?.score ? `<strong class="wave-points">+${activeWave.score.toLocaleString()}点</strong>` : ''}<button data-action="skip">結果へ進む</button></div></div>` : ''}
     ${modal ? renderModal() : ''}
   </main>`;
   document.querySelector('.board-scroll')!.scrollLeft = scrollLeft;
@@ -118,10 +118,10 @@ function renderObjective(): string {
     ${previous.events.length ? `<ul>${previous.events.map(event => `<li>${escape(event.name)}</li>`).join('')}</ul>` : ''}
   </details>` : '';
   if (state.finished) return result;
-  const choice = state.objective === null
-    ? `<div class="objective-choices">${routeChoices(state).map(sector => `<button data-action="objective-${sector}">扉${sector + 1}付近</button>`).join('')}</div>`
-    : `<p>扉${state.objective + 1}付近でトラブルを起こす</p>`;
-  return `${choice}<p>達成で400点・次駅の再配置＋1</p>${result}`;
+  const choice = state.perk
+    ? `<p><strong>${state.perk.name} · 扉${state.perk.sector + 1}付近</strong></p><p>${state.perk.description}</p>`
+    : `<div class="perk-choices">${perkChoices(state.seed, state.station).map(perk => `<button data-action="perk-${perk.id}"><strong>${perk.name}</strong><span>扉${perk.sector + 1}付近 · ${perk.description.replaceAll('指定エリアで', '').replaceAll('指定エリアの', '')}</span></button>`).join('')}</div>`;
+  return `${choice}<p>目標エリアでトラブル成立 ＋400点 · 次駅の再配置＋1</p>${result}`;
 }
 
 function renderWaveBreakdown(evaluation: Evaluation): string {
@@ -200,8 +200,10 @@ function renderEventMarkers(people: Passenger[]): string {
     if (!positions.length) return '';
     const x = positions.reduce((sum, cell) => sum + cell.x + cell.width / 2, 0) / positions.length;
     const y = positions.reduce((sum, cell) => sum + rowY(cell.row) + 260, 0) / positions.length;
-    const shape = event.rare ? `<path d="M${x} ${y - 175}L${x + 175} ${y}L${x} ${y + 175}L${x - 175} ${y}Z"/>` : `<circle cx="${x}" cy="${y}" r="155"/>`;
-    return `<g class="event-marker ${event.rare ? 'rare' : ''}"><title>${escape(event.name)}</title>${shape}</g>`;
+    const emblem = event.rare
+      ? '<path d="M0 -210 210 0 0 210 -210 0Z"/>'
+      : '<path d="M-120 -120H120V120H-120Z" transform="rotate(45)"/>';
+    return `<g class="event-impact ${event.rare ? 'rare' : ''}" transform="translate(${x} ${y})" aria-hidden="true"><g class="impact-rings"><circle r="240"/><circle r="310"/></g><g class="impact-rays"><path d="M0-260V-350 M0 260V350 M-260 0H-350 M260 0H350 M-185-185L-245-245 M185 185L245 245 M185-185L245-245 M-185 185L-245 245"/></g><g class="event-marker ${event.rare ? 'rare' : ''}">${emblem}</g></g>`;
   }).join('');
 }
 function rowY(row: number): number { return 620 + row * 650; }
@@ -336,9 +338,9 @@ function moveFocus(cellId: string, key: string): void {
   app.querySelector<HTMLElement>(`[data-cell="${next.id}"]`)?.focus();
 }
 async function handleAction(action: string): Promise<void> {
-  if (action.startsWith('objective-')) {
+  if (action.startsWith('perk-')) {
     if (animating) return;
-    state = chooseObjective(state, Number(action.slice('objective-'.length)));
+    state = choosePerk(state, action.slice('perk-'.length));
     render();
     return;
   }
@@ -394,13 +396,15 @@ async function animateEvaluation(): Promise<void> {
   render();
   if (!reducedMotion.matches) await new Promise(resolve => setTimeout(resolve, 110));
   const waves = evaluation.waves;
-  const duration = reducedMotion.matches ? 60 : Math.min(290, 2800 / Math.max(1, waves.length));
-  for (const wave of waves) {
+  const weights = waves.map(wave => wave.events.some(event => event.rare) ? 1.65 : wave.events.length ? 1.25 : 0.75);
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const beat = Math.min(300, 2800 / Math.max(1, totalWeight));
+  for (const [i, wave] of waves.entries()) {
     if (token !== animationToken) return;
     activeWave = wave;
     render();
     audio.playWave(wave.index, wave.events.length, wave.events.some(event => event.rare));
-    await new Promise(resolve => setTimeout(resolve, duration));
+    await new Promise(resolve => setTimeout(resolve, reducedMotion.matches ? 60 : beat * weights[i]));
   }
   if (token !== animationToken) return;
   await new Promise(resolve => setTimeout(resolve, reducedMotion.matches ? 0 : 350));
@@ -439,7 +443,7 @@ function renderModal(): string {
   let body = '';
   if (modal === 'help') {
     title = '遊び方';
-    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際の2.5マス区画は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>全員を配置して「発車する」を押します。区間目標を選ぶと、指定エリアのトラブルで加点されます。複数エリアで起こすと分散ボーナスが入ります。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">得点はトラブルの件数・種類・連鎖数で決まります。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
+    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際の2.5マス区画は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>全員を配置して「発車する」を押します。各停車駅で3つのバフから1つ選べます。指定エリアでトラブルを起こすと報酬を獲得します。複数エリアで起こすと加点され、同じエリアの通常トラブルは3件目から基本点が40%になります。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">得点はトラブルの件数・種類・連鎖数で決まります。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
   } else if (modal === 'catalog') {
     title = 'トラブル図鑑';
     body = `<p class="dialog-note">通常${eventDefinitions.filter(event => !event.rare).length}種・特殊${eventDefinitions.filter(event => event.rare).length}種。連鎖でストレスが80以上になった乗客を含むと成立します。</p><div class="catalog-controls"><input id="catalog-search" placeholder="名前・条件で探す" aria-label="トラブルを検索" value="${escape(search)}"><select id="catalog-filter" aria-label="図鑑の絞り込み"><option value="all" ${catalogFilter === 'all' ? 'selected' : ''}>すべて</option><option value="normal" ${catalogFilter === 'normal' ? 'selected' : ''}>通常</option><option value="rare" ${catalogFilter === 'rare' ? 'selected' : ''}>特殊</option><option value="found" ${catalogFilter === 'found' ? 'selected' : ''}>発見済み</option><option value="new" ${catalogFilter === 'new' ? 'selected' : ''}>未発見</option></select></div><div class="catalog-list">${catalogCards()}</div>`;

@@ -317,3 +317,39 @@ test("route objectives are reproducible and reward distinct trouble areas", asyn
   assert.deepEqual(routeBonuses({ ...evaluation, events: [events[0], events[0]] }, 3),
     { routeBonus: 0, objectiveBonus: 0 });
 });
+
+test("station perks are seeded, single-pick, and can change the first ignition", async () => {
+  const { choosePerk, perkChoices, sectorAt } = await import("../src/game/index.ts");
+  const seeds = Array.from({ length: 30 }, (_, i) => "perk-" + i);
+  const offers = seeds.flatMap(seed => perkChoices(seed, 0));
+  assert.equal(new Set(offers.map(offer => offer.id)).size, 5);
+  const seed = seeds.find(value => perkChoices(value, 0).some(offer => offer.id === "quiet"))!;
+  const game = createGame(seed);
+  const choices = perkChoices(seed, 0);
+  assert.deepEqual(choices, perkChoices(seed, 0));
+  assert.equal(new Set(choices.map(offer => offer.sector)).size, 3);
+  const quiet = choices.find(offer => offer.id === "quiet")!;
+  const chosen = choosePerk(game, quiet.id);
+  assert.equal(choosePerk(chosen, choices.find(offer => offer !== quiet)!.id), chosen);
+  assert.equal(choosePerk(game, "unknown"), game);
+  const cell = cells.find(cell => cell.kind === "standing" && sectorAt(cell.x + cell.width / 2) === quiet.sector)!;
+  const rider = person("quiet-rider", cell.id, { stress: 50 });
+  const fixture = { ...chosen, passengers: [rider], waiting: [] };
+  assert.equal(evaluate({ ...fixture, perk: undefined }).waves.length, 0);
+  assert.equal(evaluate(fixture).waves[0].sources[0], rider.id);
+  assert.equal(depart(fixture).perk, undefined);
+});
+
+test("the repositioning perk survives undo without granting moves twice", async () => {
+  const { choosePerk, perkChoices } = await import("../src/game/index.ts");
+  const seed = Array.from({ length: 30 }, (_, i) => "moves-" + i)
+    .find(value => perkChoices(value, 0).some(offer => offer.id === "switch"))!;
+  const first = { ...createGame(seed), passengers: [person("mover", "r0-b0-0")] };
+  const moved = move(first, "mover", "r0-b0-2");
+  assert.equal(moved.movesLeft, 1);
+  const picked = choosePerk(moved, "switch");
+  assert.equal(picked.movesLeft, 3);
+  const restored = undo(picked);
+  assert.equal(restored.movesLeft, 4);
+  assert.equal(choosePerk(restored, "switch"), restored);
+});

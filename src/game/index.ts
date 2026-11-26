@@ -1,4 +1,5 @@
 import { capacity, cellById, cells } from "./board.ts";
+import { perkChoices, troubleSector } from "./perks.ts";
 import { evaluate } from "./evaluation.ts";
 import { generateSchedule, createInitialPassengers, initialPassengerCount, seededRandom } from "./generation.ts";
 import { allocatePassenger, hasLegalPlacement, normalizeBodySpace } from "./occupancy.ts";
@@ -65,9 +66,20 @@ export function canPlace(
   return allocatePassenger(state.passengers, person, cellId) !== null;
 }
 
-/** Four sectors around the four boarding doors. */
-export function sectorAt(x: number): number {
-  return Math.min(3, Math.max(0, Math.floor((x - 960) / 4520)));
+export { perkChoices, sectorAt } from "./perks.ts";
+
+export function choosePerk(state: GameState, id: string): GameState {
+  if (state.finished || state.perk) return state;
+  const perk = perkChoices(state.seed, state.station).find(offer => offer.id === id);
+  if (!perk) return state;
+  const extraMoves = perk.id === "switch" ? 2 : 0;
+  return {
+    ...state,
+    perk,
+    objective: perk.sector,
+    movesLeft: state.movesLeft + extraMoves,
+    history: state.history.map(entry => ({ ...entry, movesLeft: entry.movesLeft + extraMoves })),
+  };
 }
 
 export function routeChoices(state: GameState): number[] {
@@ -86,13 +98,8 @@ export function routeBonuses(result: Evaluation, objective: number | null) {
   const sectors = new Set<number>();
   let fulfilled = false;
   for (const event of result.events) {
-    const positions = event.participants.flatMap(id => {
-      const cellId = byId.get(id);
-      const cell = cellId ? cellById.get(cellId) : undefined;
-      return cell ? [cell.x + cell.width / 2] : [];
-    });
-    if (!positions.length) continue;
-    const sector = sectorAt(positions.reduce((sum, x) => sum + x, 0) / positions.length);
+    const sector = troubleSector(event.participants, byId);
+    if (sector < 0) continue;
     sectors.add(sector);
     if (sector === objective) fulfilled = true;
   }
@@ -241,6 +248,7 @@ export function depart(state: GameState): GameState {
     passengers,
     waiting,
     objective: null,
+    perk: undefined,
     movesLeft: committed.lastEvaluation?.objectiveBonus ? 3 : 2,
     finished: noSpace ? "no-space" : null,
   };

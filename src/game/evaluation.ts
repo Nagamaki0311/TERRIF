@@ -1,3 +1,4 @@
+import { sectorAt, troubleSector } from "./perks.ts";
 import { adjacent, cellById, cells } from "./board.ts";
 import { normalCandidates, selectNormal, waveScore } from "./events.ts";
 import { getCellUsage } from "./occupancy.ts";
@@ -14,6 +15,8 @@ export function evaluate(state: GameState): Evaluation {
   const passengers = state.passengers.map((person) => ({ ...person }));
   const standing = (person: Passenger) =>
     cellById.get(person.cellId!)!.kind !== "seat";
+  const inPerkSector = (cell: (typeof cells)[number]) =>
+    state.perk?.sector === sectorAt(cell.x + cell.width / 2);
   const hasStandingNeed = passengers.some(
     (person) => standing(person) && person.sensitivity >= 4,
   );
@@ -51,9 +54,15 @@ export function evaluate(state: GameState): Evaluation {
       (cell.kind === "door" && occupants === 3 ? 8 : 0) +
       luggageNeighbors * 2 +
       (cell.priority && person.sensitivity < 4 && hasStandingNeed ? 2 : 0) + relationBurden;
+    const perk = inPerkSector(cell) ? state.perk?.id : undefined;
+    const perkBurden = perk === "quiet" && nearby.length <= 1 ? 34
+      : perk === "seats" && cell.kind === "seat" ? 26
+      : perk === "luggage" && (person.luggage || nearby.some(other => other.luggage)) ? 24
+      : perk === "switch" && standing(person) ? 12 : 0;
+    const effectiveRecovery = perk === "seats" && cell.kind === "seat" ? 0 : recovery;
     person.stress = Math.min(
       100,
-      Math.max(0, person.stress - recovery) + burden,
+      Math.max(0, person.stress - effectiveRecovery) + burden + perkBurden,
     );
   }
   const stress = () =>
@@ -66,6 +75,8 @@ export function evaluate(state: GameState): Evaluation {
   const used = new Set<string>();
   const counts = new Map<string, number>();
   const normalHistory: TroubleEvent[] = [];
+  const positions = new Map(passengers.map(person => [person.id, person.cellId]));
+  const sectorCounts = [0, 0, 0, 0];
   const rareHistory: TroubleEvent[] = [];
   const waves: Wave[] = [];
   if (sources.length)
@@ -84,14 +95,21 @@ export function evaluate(state: GameState): Evaluation {
     const receivers: string[] = [];
     const triggered: string[] = [];
     const changes = passengers.map((person) => {
-      const hits = passengers.filter(
+      const senders = passengers.filter(
         (other) =>
           other.id !== person.id &&
           sourceSet.has(other.id) &&
           adjacent(person.cellId, other.cellId),
-      ).length;
-      if (hits) receivers.push(person.id);
-      const after = Math.min(100, person.stress + hits * 25);
+      );
+      if (senders.length) receivers.push(person.id);
+      const target = cellById.get(person.cellId!)!;
+      const resonant = state.perk?.id === "bridge" && inPerkSector(target) && target.kind === "standing"
+        ? senders.filter(sender => {
+          const origin = cellById.get(sender.cellId!)!;
+          return origin.kind === "standing" && origin.row !== target.row;
+        }).length
+        : 0;
+      const after = Math.min(100, person.stress + (senders.length + resonant) * 25);
       if (person.stress < 80 && after >= 80) triggered.push(person.id);
       return after;
     });
@@ -112,8 +130,14 @@ export function evaluate(state: GameState): Evaluation {
       rareHistory,
     );
     rareHistory.push(...rare);
+    // Later trouble at the same location has diminishing value within the ride.
+    const scoringEvents = normal.map(event => {
+      const sector = troubleSector(event.participants, positions);
+      if (sector < 0 || ++sectorCounts[sector] <= 2) return event;
+      return { ...event, points: Math.floor(event.points * 0.4) };
+    });
     const score =
-      waveScore(normal, index) +
+      waveScore(scoringEvents, index) +
       rare.reduce((sum, event) => sum + event.points, 0);
     waves.push({
       index,

@@ -1,3 +1,5 @@
+import type { PerkOffer } from "./perks.ts";
+
 export type Species = "若人" | "働人" | "老人" | "客人" | "休人";
 export type CellKind = "seat" | "standing" | "door";
 export interface Cell {
@@ -76,6 +78,7 @@ export interface Snapshot {
 export interface GameState extends Snapshot {
   seed: string;
   objective: number | null;
+  perk?: PerkOffer;
   station: number;
   score: number;
   schedule: Passenger[][];
