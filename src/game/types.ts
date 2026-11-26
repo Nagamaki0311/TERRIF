@@ -17,6 +17,11 @@ export interface Cell {
 }
 export interface Passenger {
   id: string;
+  special?: {
+    name: string;
+    rarity: import("./perks.ts").Rarity;
+    skill: import("./perks.ts").SpecialSkill;
+  };
   species: Species;
   age: number;
   sensitivity: number;
@@ -43,6 +48,7 @@ export interface EventDefinition {
   rare: boolean;
 }
 export interface TroubleEvent {
+  sector?: number;
   id: string;
   type: string;
   name: string;
@@ -79,6 +85,9 @@ export interface GameState extends Snapshot {
   seed: string;
   objective: number | null;
   perk?: PerkOffer;
+  stationEvents?: TroubleEvent[];
+  stationSectors?: number[];
+  objectiveFulfilled?: boolean;
   station: number;
   score: number;
   schedule: Passenger[][];

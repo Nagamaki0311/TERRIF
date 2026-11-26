@@ -1,5 +1,5 @@
 import { sectorAt, troubleSector } from "./perks.ts";
-import { adjacent, cellById, cells } from "./board.ts";
+import { adjacent, cellById, cells, neighbors } from "./board.ts";
 import { normalCandidates, selectNormal, waveScore } from "./events.ts";
 import { getCellUsage } from "./occupancy.ts";
 import { rareCandidates, selectRare } from "./rare.ts";
@@ -11,7 +11,15 @@ import type {
   Wave,
 } from "./types.ts";
 
-export function evaluate(state: GameState): Evaluation {
+export function evaluatePlacement(state: GameState, passengerId: string): Evaluation {
+  const placed = state.passengers.find(person => person.id === passengerId)!;
+  const affected = new Set(state.passengers
+    .filter(person => person.id === passengerId || adjacent(person.cellId, placed.cellId))
+    .map(person => person.id));
+  return evaluate(state, affected);
+}
+
+export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
   const passengers = state.passengers.map((person) => ({ ...person }));
   const standing = (person: Passenger) =>
     cellById.get(person.cellId!)!.kind !== "seat";
@@ -22,7 +30,9 @@ export function evaluate(state: GameState): Evaluation {
   );
   const vacantSeats = cells.some(cell => cell.kind === "seat" && getCellUsage(passengers, cell.id) === 0);
   const vacantStanding = cells.some(cell => cell.kind === "standing" && getCellUsage(passengers, cell.id) === 0);
+  const rank = (person: Passenger) => person.special?.rarity === "SSS" ? 3 : person.special?.rarity === "SS" ? 2 : 1;
   for (const person of passengers) {
+    if (affected && !affected.has(person.id)) continue;
     const cell = cellById.get(person.cellId!)!;
     const nearby = passengers.filter(
       (other) =>
@@ -54,30 +64,40 @@ export function evaluate(state: GameState): Evaluation {
       (cell.kind === "door" && occupants === 3 ? 8 : 0) +
       luggageNeighbors * 2 +
       (cell.priority && person.sensitivity < 4 && hasStandingNeed ? 2 : 0) + relationBurden;
-    const perk = inPerkSector(cell) ? state.perk?.id : undefined;
+    const perk = state.perk?.kind !== "special" && inPerkSector(cell) ? state.perk?.id : undefined;
     const perkBurden = perk === "quiet" && nearby.length <= 1 ? 34
       : perk === "seats" && cell.kind === "seat" ? 26
       : perk === "luggage" && (person.luggage || nearby.some(other => other.luggage)) ? 24
       : perk === "switch" && standing(person) ? 12 : 0;
+    const aura = nearby.filter(other => other.special?.skill === "aura")
+      .reduce((sum, other) => sum + rank(other) * 8, 0);
     const effectiveRecovery = perk === "seats" && cell.kind === "seat" ? 0 : recovery;
     person.stress = Math.min(
       100,
-      Math.max(0, person.stress - effectiveRecovery) + burden + perkBurden,
+      Math.max(0, person.stress - effectiveRecovery) + burden + perkBurden + aura,
     );
   }
   const stress = () =>
     Object.fromEntries(passengers.map((person) => [person.id, person.stress]));
   let sources = passengers
-    .filter((person) => person.stress >= 80)
+    .filter((person) => person.stress >= 80 && (!affected || affected.has(person.id)))
     .map((person) => person.id);
   const fired = new Set(sources);
   const paid = new Set(state.scoredEvents);
-  const used = new Set<string>();
+  const prior = affected ? state.stationEvents ?? [] : [];
+  const used = new Set<string>(prior.filter(event => !event.rare).flatMap(event => event.participants));
   const counts = new Map<string, number>();
+  for (const event of prior.filter(event => !event.rare)) counts.set(event.type, (counts.get(event.type) ?? 0) + 1);
   const normalHistory: TroubleEvent[] = [];
   const positions = new Map(passengers.map(person => [person.id, person.cellId]));
   const sectorCounts = [0, 0, 0, 0];
+  for (const event of prior.filter(event => !event.rare)) {
+    const sector = event.sector ?? troubleSector(event.participants, positions);
+    if (sector >= 0) sectorCounts[sector]++;
+  }
   const rareHistory: TroubleEvent[] = [];
+  const priorNormal = prior.filter(event => !event.rare);
+  const priorRare = prior.filter(event => event.rare);
   const waves: Wave[] = [];
   if (sources.length)
     waves.push({
@@ -99,17 +119,27 @@ export function evaluate(state: GameState): Evaluation {
         (other) =>
           other.id !== person.id &&
           sourceSet.has(other.id) &&
-          adjacent(person.cellId, other.cellId),
+          (adjacent(person.cellId, other.cellId) ||
+            (other.special?.skill === "relay" && other.cellId !== null && person.cellId !== null &&
+              (neighbors.get(other.cellId) ?? []).some(middle =>
+                !passengers.some(occupant => occupant.cellId === middle) &&
+                (neighbors.get(middle) ?? []).includes(person.cellId!)))),
       );
       if (senders.length) receivers.push(person.id);
       const target = cellById.get(person.cellId!)!;
+      const specialBoost = senders.reduce((sum, sender) => {
+        if (sender.special?.skill === "bridge" && cellById.get(sender.cellId!)!.row !== target.row)
+          return sum + 10 * rank(sender);
+        if (sender.special?.skill === "relay") return sum + 4 * rank(sender);
+        return sum;
+      }, 0);
       const resonant = state.perk?.id === "bridge" && inPerkSector(target) && target.kind === "standing"
         ? senders.filter(sender => {
           const origin = cellById.get(sender.cellId!)!;
           return origin.kind === "standing" && origin.row !== target.row;
         }).length
         : 0;
-      const after = Math.min(100, person.stress + (senders.length + resonant) * 25);
+      const after = Math.min(100, person.stress + (senders.length + resonant) * 25 + specialBoost);
       if (person.stress < 80 && after >= 80) triggered.push(person.id);
       return after;
     });
@@ -121,18 +151,26 @@ export function evaluate(state: GameState): Evaluation {
       paid,
       used,
       counts,
-      20 - normalHistory.length,
+      20 - priorNormal.length - normalHistory.length,
     );
+    normal.forEach(event => { event.sector = troubleSector(event.participants, positions); });
     normalHistory.push(...normal);
+    const rareOptions = rareCandidates(
+      passengers,
+      [...priorNormal.map(event => ({ ...event, wave: -event.wave })), ...normalHistory],
+      index,
+      state.station,
+    ).filter(event => event.sources.some(id => normal.some(current => current.id === id)));
     const rare = selectRare(
-      rareCandidates(passengers, normalHistory, index, state.station),
+      rareOptions,
       paid,
-      rareHistory,
+      [...priorRare, ...rareHistory],
     );
+    rare.forEach(event => { event.sector = troubleSector(event.participants, positions); });
     rareHistory.push(...rare);
     // Later trouble at the same location has diminishing value within the ride.
     const scoringEvents = normal.map(event => {
-      const sector = troubleSector(event.participants, positions);
+      const sector = event.sector ?? troubleSector(event.participants, positions);
       if (sector < 0 || ++sectorCounts[sector] <= 2) return event;
       return { ...event, points: Math.floor(event.points * 0.4) };
     });

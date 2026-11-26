@@ -131,8 +131,8 @@ test("placement, movement, undo and preview preserve passenger identities and or
   assert.equal(JSON.stringify(placed), beforePreview);
   const moved = move(placed, id, "r1-b0-1");
   assert.equal(moved.movesLeft, 1);
-  assert.deepEqual(undo(moved), placed);
-  assert.deepEqual(undo(placed), original);
+  assert.equal(undo(moved), moved);
+  assert.equal(undo(placed), placed);
   const movedTwice = move(moved, id, "r1-b0-2");
   assert.equal(move(movedTwice, id, "r0-d0"), movedTwice);
   assert.equal(
@@ -248,11 +248,12 @@ test("fixed-seed full runs terminate after six rides and produce actual varied t
         const cell = order.find((cell) => canPlace(game, person.id, cell.id));
         assert.ok(cell);
         game = place(game, person.id, cell.id);
+        eventCount += game.lastEvaluation?.events.length ?? 0;
       }
       if (game.finished) break;
       game = depart(game);
       rides++;
-      eventCount += game.lastEvaluation!.events.length;
+
       assert.equal(
         new Set(game.passengers.map((person) => person.id)).size,
         game.passengers.length,
@@ -290,12 +291,12 @@ test("half-cell compression scores a crowding event and preview matches luggage 
   const crowded = place(initial, waiting.id, "r1-b0-0");
   assert.equal(crowded.passengers.find(p => p.id === waiting.id)?.bodySpace, 0.5);
   assert.equal(getCellUsage(crowded.passengers, "r1-b0-0"), 1);
-  const result = evaluate(crowded);
-  assert.ok(result.events.some(event => event.type === "N51"));
+  assert.ok(crowded.lastEvaluation!.events.some(event => event.type === "N51"));
+  const predicted = preview(crowded, owner.id, "r0-b0-2");
   const moved = move(crowded, owner.id, "r0-b0-2");
   assert.notEqual(moved, crowded);
   assert.equal(moved.passengers.find(p => p.id === waiting.id)?.bodySpace, 1);
-  assert.deepEqual(preview(crowded, owner.id, "r0-b0-2"), evaluate(moved));
+  assert.deepEqual(predicted.passengers, moved.passengers);
 });
 
 test("route objectives are reproducible and reward distinct trouble areas", async () => {
@@ -322,7 +323,7 @@ test("station perks are seeded, single-pick, and can change the first ignition",
   const { choosePerk, perkChoices, sectorAt } = await import("../src/game/index.ts");
   const seeds = Array.from({ length: 30 }, (_, i) => "perk-" + i);
   const offers = seeds.flatMap(seed => perkChoices(seed, 0));
-  assert.equal(new Set(offers.map(offer => offer.id)).size, 5);
+  assert.equal(new Set(offers.filter(offer => offer.kind === "buff").map(offer => offer.id)).size, 5);
   const seed = seeds.find(value => perkChoices(value, 0).some(offer => offer.id === "quiet"))!;
   const game = createGame(seed);
   const choices = perkChoices(seed, 0);
@@ -350,6 +351,85 @@ test("the repositioning perk survives undo without granting moves twice", async 
   const picked = choosePerk(moved, "switch");
   assert.equal(picked.movesLeft, 3);
   const restored = undo(picked);
-  assert.equal(restored.movesLeft, 4);
+  assert.equal(restored.movesLeft, 3);
+  assert.equal(restored, picked);
   assert.equal(choosePerk(restored, "switch"), restored);
+});
+
+test("offers always contain one rarity-weighted special and two distinct buffs", async () => {
+  const { perkChoices, choosePerk } = await import("../src/game/index.ts");
+  const counts = { S: 0, SS: 0, SSS: 0 };
+  for (let i = 0; i < 500; i++) {
+    const offers = perkChoices("rarity-" + i, i % 6);
+    assert.equal(offers.filter(offer => offer.kind === "special").length, 1);
+    assert.equal(offers.filter(offer => offer.kind === "buff").length, 2);
+    assert.equal(new Set(offers.map(offer => offer.id)).size, 3);
+    counts[offers[0].rarity!]++;
+  }
+  assert.ok(counts.S > counts.SS && counts.SS > counts.SSS && counts.SSS > 0);
+  const initial = createGame("special-acquisition");
+  const offer = perkChoices(initial.seed, initial.station)[0];
+  const acquired = choosePerk(initial, offer.id);
+  assert.equal(acquired.waiting.length, initial.waiting.length + 1);
+  assert.equal(acquired.waiting[0].special?.skill, offer.skill);
+  assert.equal(acquired.waiting[0].special?.rarity, offer.rarity);
+  assert.equal(choosePerk(acquired, offer.id), acquired);
+});
+
+test("placement resolves immediately, leaves remote stress untouched, and departure never rescores", () => {
+  const remote = person("remote", "r1-b4-1", { stress: 40 });
+  const owner = person("owner", "r0-b0-0", { luggage: true, belongings: "hand", luggageCellId: "r1-b0-0", stress: 100 });
+  const waiting = person("new", null, { stress: 50 });
+  const initial = { ...state([owner, remote]), waiting: [waiting] };
+  const placed = place(initial, waiting.id, "r1-b0-0");
+  assert.ok(placed.lastEvaluation!.events.some(event => event.type === "N51"));
+  assert.ok(placed.score > initial.score);
+  assert.equal(placed.passengers.find(person => person.id === remote.id)!.stress, 40);
+  assert.equal(undo(placed), placed);
+  const score = placed.score;
+  const paid = placed.scoredEvents;
+  const next = depart(placed);
+  assert.equal(next.score, score);
+  assert.deepEqual(next.scoredEvents, paid);
+  assert.equal(next.lastEvaluation, null);
+  assert.deepEqual(next.stationEvents, []);
+});
+
+test("old events retain their sector and cannot become a new objective after movement", () => {
+  const old = {
+    id: "old-event", type: "N01", name: "old", participants: ["old"],
+    points: 20, wave: 1, rare: false, sources: [], sector: 0,
+  };
+  const initial = {
+    ...state([person("old", "r1-b4-1", { stress: 20 })]),
+    stationEvents: [old], stationSectors: [0], objective: 3,
+    scoredEvents: [old.id], waiting: [person("new", null, { stress: 5 })],
+  };
+  const placed = place(initial, "new", "r0-b2-0");
+  assert.equal(placed.lastEvaluation!.events.length, 0);
+  assert.equal(placed.lastEvaluation!.objectiveBonus, 0);
+  assert.equal(placed.lastEvaluation!.routeBonus, 0);
+  assert.deepEqual(placed.stationSectors, [0]);
+  assert.equal(placed.stationEvents![0].sector, 0);
+});
+
+test("special skills have distinct reach and rarity-strength effects", async () => {
+  const { evaluatePlacement } = await import("../src/game/evaluation.ts");
+  const skillState = (skill: "aura" | "bridge" | "relay", rarity: "S" | "SSS", target: string) => state([
+    person("special", "r1-b1-1", {
+      stress: 100, special: { name: "test", skill, rarity },
+    }),
+    person("target", target, { stress: 35 }),
+  ]);
+  const s = evaluatePlacement(skillState("aura", "S", "r1-b1-2"), "special");
+  const sss = evaluatePlacement(skillState("aura", "SSS", "r1-b1-2"), "special");
+  assert.ok(sss.passengers[1].stress > s.passengers[1].stress);
+  const bridge = evaluatePlacement(skillState("bridge", "SSS", "r2-b1-1"), "special");
+  const plain = evaluatePlacement(state([
+    person("special", "r1-b1-1", { stress: 100 }),
+    person("target", "r2-b1-1", { stress: 35 }),
+  ]), "special");
+  assert.ok(bridge.passengers[1].stress > plain.passengers[1].stress);
+  const relay = evaluatePlacement(skillState("relay", "S", "r1-b1-3"), "special");
+  assert.ok(relay.passengers[1].stress > 35);
 });

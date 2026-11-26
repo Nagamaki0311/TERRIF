@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="aura" viewBox="0 0 64 64">
+    <path d="M8 60V44Q8 32 22 31H42Q56 32 56 44V60Z" fill="#243b53" stroke="#152635" stroke-width="3"/>
+    <path d="M22 33 32 48 42 33" fill="#dbe9f1"/>
+    <path d="M18 16Q18 5 32 5T46 16V25Q43 35 32 35T18 25Z" fill="#c8d9df" stroke="#152635" stroke-width="3"/>
+    <path d="M16 17V11L23 4H41L48 11V17Z" fill="#435f76" stroke="#152635" stroke-width="3"/>
+    <path d="M23 20H28M36 20H41M26 28H38" stroke="#152635" stroke-width="3"/>
+    <path d="M43 42 57 35V53L43 47Z" fill="#e6ad42" stroke="#152635" stroke-width="2"/>
+    <path d="M51 38V50" stroke="#fff0ba" stroke-width="2"/>
+  </symbol>
+  <symbol id="bridge" viewBox="0 0 64 64">
+    <path d="M7 60 11 39 25 31H39L53 39 57 60Z" fill="#67406f" stroke="#251c32" stroke-width="3"/>
+    <path d="M25 33 32 47 39 33 37 60H27Z" fill="#c8bbd8"/>
+    <path d="M20 11 32 5 44 11 46 25 40 34H24L18 25Z" fill="#d9c9e1" stroke="#251c32" stroke-width="3"/>
+    <path d="M17 15 24 4 40 4 47 15 39 12 32 19 25 12Z" fill="#392e4d"/>
+    <path d="M22 23H29M35 23H42" stroke="#251c32" stroke-width="3"/>
+    <path d="M8 44H24M40 44H56M18 39 24 44 18 49M46 39 40 44 46 49" fill="none" stroke="#edbd62" stroke-width="3"/>
+  </symbol>
+  <symbol id="relay" viewBox="0 0 64 64">
+    <path d="M9 60V44L24 32H40L55 44V60Z" fill="#2a655c" stroke="#163b3a" stroke-width="3"/>
+    <path d="M25 33 32 47 39 33" fill="#dae9d2"/>
+    <path d="M20 11H44V25Q42 36 32 36T20 25Z" fill="#c6e0d2" stroke="#163b3a" stroke-width="3"/>
+    <path d="M15 14 23 4H42L48 15Z" fill="#234c45" stroke="#163b3a" stroke-width="3"/>
+    <path d="M23 23H28M36 23H41" stroke="#163b3a" stroke-width="3"/>
+    <path d="M18 60 41 35" stroke="#dcba72" stroke-width="5"/>
+    <path d="M39 45H58V59H39Z" fill="#ddba72" stroke="#163b3a" stroke-width="2"/>
+    <path d="M41 47 49 53 56 47" fill="none" stroke="#163b3a" stroke-width="2"/>
+  </symbol>
+</svg>

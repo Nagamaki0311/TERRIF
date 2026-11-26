@@ -606,3 +606,17 @@ for (const [type, build] of Object.entries(rareFixtures)) {
     );
   });
 }
+
+test("S04 requires simultaneous events within the current placement reaction", () => {
+  const people = [p(front), p(nextFront), p("r2-b1-2")];
+  const history = [
+    candidateEvent("N19", [people[0]], -1),
+    candidateEvent("N20", [people[1]], -1),
+    candidateEvent("N21", [people[2]], 2),
+  ];
+  assert.ok(!rareCandidates(people, history, 2, 0).some(event => event.type === "S04"));
+  const current = history.map((event, i) => ({ ...event, wave: i < 2 ? 1 : 2 }));
+  assert.ok(rareCandidates(people, current, 2, 0).some(event => event.type === "S04"));
+  const separate = current.map((event, i) => ({ ...event, wave: i + 1 }));
+  assert.ok(!rareCandidates(people, separate, 3, 0).some(event => event.type === "S04"));
+});

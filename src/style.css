@@ -1790,3 +1790,138 @@ strong, b, .count, .card-tags, .preview-score {
   .perk-choices button { flex: 0 0 88%; scroll-snap-align: start; }
   .wave-event { max-width: 13ch; font-size: 10px; }
 }
+
+/* Real-time play keeps the board and the next passenger available. */
+.sidebar-actions { grid-template-columns: 1fr; }
+.run-status { padding: 12px; border-top: 1px solid var(--line); }
+.run-status > span { color: var(--muted); font-size: 12px; }
+.run-status > strong { display: block; font-size: 28px; font-variant-numeric: tabular-nums; }
+.run-status small { font-size: 12px; margin-left: 5px; }
+.acquired-perk { display: block; text-align: left; padding: 4px 0; font-size: 12px; color: var(--teal); }
+.board-scroll { overflow: auto; }
+.train-board.camera-pulse { animation: camera-focus .48s cubic-bezier(.15,.7,.2,1) both; }
+@keyframes camera-focus {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.16); }
+}
+.relay-line { stroke: #865bb8; stroke-dasharray: 65 35; }
+.special-passenger .portrait { filter: drop-shadow(0 1px 1px #18313a55); }
+.special-passenger.rarity-SS { --species: #b28b34 !important; }
+.special-passenger.rarity-SSS { --species: #7755a6 !important; }
+.special-passenger .person-selection { stroke: #526c80; stroke-width: 22px; }
+.special-passenger.rarity-SS .person-selection { stroke: #a77b23; }
+.special-passenger.rarity-SSS .person-selection { stroke: #8052a0; }
+.special-rarity { fill: #1c3546; stroke: #f9f6eb; stroke-width: 32px; paint-order: stroke; font: bold 175px sans-serif; text-anchor: middle; }
+
+/* Three offers are one decision, shown together before the next stop begins. */
+.upgrade-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.modal:has(.upgrade-cards) { width: min(900px, calc(100vw - 28px)); }
+.upgrade-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 20px 15px;
+  min-height: 210px;
+  background: #e4e9e5;
+  border: 1px solid #96aaa0;
+  text-align: left;
+}
+.upgrade-kind { font-size: 11px; letter-spacing: .06em; color: #405b52; }
+.upgrade-card > strong { font-size: 20px; line-height: 1.35; }
+.upgrade-card > span:last-child { font-size: 13px; line-height: 1.7; }
+.special-choice { background: linear-gradient(145deg, #f2f4f6, #cbd7e1); border-color: #6d879e; }
+.special-choice .upgrade-kind { color: #284d70; font-weight: 750; }
+.upgrade-card:hover { box-shadow: inset 0 0 0 2px #365f52; }
+
+/* Event cut-ins are independent of the interactive game surface. */
+.event-cutin { position: fixed; z-index: 22; inset: 0; pointer-events: none; display: flex; justify-content: center; align-items: flex-start; padding-top: clamp(110px, 19vh, 210px); }
+.cutin-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; width: min(760px, calc(100vw - 24px)); max-height: 37vh; overflow: auto; pointer-events: auto; }
+.cutin-stack > :only-child { grid-column: 1 / -1; }
+.cutin-metal {
+  position: relative;
+  padding: 15px 20px;
+  border: 1px solid #e7eef5;
+  border-top: 3px solid #f6fbff;
+  background: linear-gradient(165deg, #475969 0%, #182b3c 28%, #354a5c 50%, #0b1b29 51%, #273b4d 100%);
+  box-shadow: 0 7px 0 #07141e, 0 13px 23px #09142155, inset 0 0 0 3px #8ca2b255;
+  color: #edf5fa;
+  transform: skewX(-3deg);
+  animation: cutin-enter .24s cubic-bezier(.1,.7,.15,1) both;
+}
+.cutin-tag { display: block; font-size: 10px; font-weight: 750; color: #c3d5e4; margin-bottom: 3px; }
+.cutin-metal > strong {
+  display: block;
+  font-size: clamp(19px, 2.7vw, 34px);
+  font-weight: 900;
+  line-height: 1.25;
+  color: #eaf2f8;
+  text-shadow: 0 1px #fff, 0 2px #a4b5c3, 0 3px #8499aa, 0 4px #536d82, 0 6px 2px #0008;
+}
+.cutin-metal p { margin-top: 10px; color: #f1f5f8; font-size: 12px; line-height: 1.65; }
+.cutin-metal.rare-cutin { border-color: #f2d990; background: linear-gradient(165deg, #82724b, #332a16 30%, #66552e 50%, #1e190e 51%, #4e4025); }
+.rare-cutin > strong { color: #fff0bd; text-shadow: 0 1px #fff8dc, 0 2px #bba265, 0 3px #91773e, 0 4px #624817, 0 6px 2px #0008; }
+@keyframes cutin-enter {
+  from { opacity: 0; transform: translateX(-35px) skewX(-7deg) scale(.95); }
+  to { opacity: 1; transform: translateX(0) skewX(-3deg) scale(1); }
+}
+@media (max-width: 760px) {
+  .run-status { padding: 7px 8px; }
+  .run-status > span { font-size: 10px; }
+  .run-status > strong { display: inline-block; font-size: 23px; margin-left: 6px; }
+  .acquired-perk { font-size: 10px; min-height: 26px; padding: 2px 0; }
+  .sidebar-actions { grid-template-columns: 1fr; }
+  .upgrade-cards { grid-template-columns: 1fr; gap: 7px; }
+  .upgrade-card { min-height: 90px; padding: 11px 12px; gap: 4px; }
+  .upgrade-card > strong { font-size: 18px; }
+  .upgrade-card > span:last-child { font-size: 12px; line-height: 1.45; }
+  .cutin-stack { max-height: 33vh; gap: 4px; }
+  .cutin-metal { padding: 9px 10px; }
+  .cutin-metal > strong { font-size: 17px; }
+  .cutin-metal p { font-size: 10px; line-height: 1.45; margin-top: 6px; }
+  .cutin-tag { font-size: 9px; }
+  .event-cutin { padding-top: 130px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .train-board.camera-pulse, .cutin-metal { animation: none; }
+  .cutin-metal { transform: none; }
+}
+@media (max-width: 760px) {
+  .run-status { margin: 0; min-width: 0; min-height: 0; overflow: hidden; }
+  .special-passenger .passenger-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; }
+  .special-passenger .passenger-name small { display: block; font-size: 9px; margin-left: 0; }
+}
+.upgrade-portrait { width: 58px; height: 58px; }
+.special-choice.rarity-SS { background: linear-gradient(145deg, #fff3c9, #cbb67a); border-color: #a48a3a; }
+.special-choice.rarity-SSS { background: linear-gradient(145deg, #f1e8ff, #b6a3cf); border-color: #8564a2; }
+@media (max-width: 760px) {
+  .special-choice { position: relative; padding-left: 66px; }
+  .special-choice .upgrade-portrait { position: absolute; left: 10px; top: 17px; width: 46px; height: 46px; }
+}
+
+/* A temporary camera framing leaves the player's chosen zoom setting intact. */
+.train-board.camera-focused {
+  width: max(1920px, 100%);
+  min-width: 1920px;
+  flex-shrink: 0;
+}
+.board-scroll:has(.camera-focused) { align-items: flex-start; }
+.wave-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: auto;
+  min-height: 44px;
+  max-width: calc(100vw - 24px);
+  padding: 5px 8px 5px 14px;
+}
+.wave-overlay > strong { font-size: 18px; white-space: nowrap; }
+.wave-overlay > button { margin: 0; min-height: 36px; padding: 4px 9px; font-size: 12px; }
+@media (max-width: 760px) {
+  .train-board.camera-focused { width: 1920px; min-width: 1920px; height: 365px; min-height: 0; }
+  .wave-overlay { min-height: 42px; gap: 10px; padding: 4px 6px 4px 12px; }
+  .wave-overlay > strong { font-size: 16px; }
+  .wave-overlay > button { font-size: 11px; }
+}

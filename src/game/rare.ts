@@ -121,10 +121,12 @@ export function rareCandidates(
       3,
       3,
       (group) => {
-        const waves = group.map((event) => event.wave);
+        // Positive wave numbers belong to this placement's reaction.
+        // Earlier placements use negative markers and cannot prove simultaneity.
+        const waves = group.filter((event) => event.wave > 0).map((event) => event.wave);
         return (
           containsTypes(group, ["N19", "N20", "N21"]) &&
-          new Set(waves).size < 3 &&
+          new Set(waves).size < waves.length &&
           includesCurrent(group)
         );
       },

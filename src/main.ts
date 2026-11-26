@@ -16,14 +16,19 @@ let selectedId: string | null = state.waiting[0]?.id ?? null;
 let hoveredCell: string | null = null;
 const boarding = new Map<string, { path: string; started: number; duration: number }>();
 let zoom = false;
-let modal: 'help' | 'catalog' | 'sound' | 'restart' | 'result' | null = null;
+let modal: 'help' | 'catalog' | 'sound' | 'restart' | 'result' | 'upgrade' | null = 'upgrade';
 let search = '';
 let catalogFilter = 'all';
 let animating = false;
 let activeWave: Wave | null = null;
+let activeEvaluation: Evaluation | null = null;
+const evaluationQueue: Evaluation[] = [];
+const presented = new WeakSet<Evaluation>();
+let cameraCell: string | null = null;
+let pointerActive = false;
+let lastBoardInput = 0;
 let animationToken = 0;
 let announcement = '';
-let tutorialVisible = readStored('chaos-line.tutorial') !== 'done';
 
 let focusRequest: string | null = null;
 let discovered = readDiscoveries();
@@ -46,8 +51,16 @@ function escape(value: string | number): string {
 function selected(): Passenger | undefined {
   return [...state.waiting, ...state.passengers].find(person => person.id === selectedId);
 }
+function portraitHref(person: Passenger): string {
+  return person.special
+    ? `${import.meta.env.BASE_URL}special-tokens.svg#${person.special.skill}`
+    : `${sprite}#${portraits[person.species]}`;
+}
+function personName(person: Passenger): string {
+  return person.special?.name ?? person.species;
+}
 function personIcon(person: Passenger, className = ''): string {
-  return `<svg class="portrait ${className}" viewBox="0 0 64 64" aria-hidden="true"><use href="${sprite}#${portraits[person.species]}"></use></svg>`;
+  return `<svg class="portrait ${className}" viewBox="0 0 64 64" aria-hidden="true"><use href="${portraitHref(person)}"></use></svg>`;
 }
 function notify(message: string): void {
   announcement = message;
@@ -70,6 +83,9 @@ function render(): void {
   const queueScroll = document.querySelector('.passenger-queue')?.scrollLeft ?? 0;
   const person = selected();
   const isExisting = !!person?.cellId;
+  const averageStress = state.passengers.length
+    ? Math.round(state.passengers.reduce((sum, rider) => sum + rider.stress, 0) / state.passengers.length)
+    : 0;
   const onboardCount = state.passengers.length;
   app.innerHTML = `<main class="app-shell">
     <header class="topbar">
@@ -80,27 +96,28 @@ function render(): void {
       </nav>
     </header>
     <section class="masthead" aria-label="運行状況">
-      <div class="stats"><div class="stat score"><span>カオススコア</span><strong>${state.score.toLocaleString()}</strong></div><div class="stat"><span>混雑率</span><strong>${Math.round(onboardCount / capacity * 100)}<small>%</small></strong></div><div class="stat discovery"><span>乗車中</span><strong>${onboardCount}<small>人</small></strong></div></div>
+      <div class="stats"><div class="stat score"><span>車内ストレス</span><strong>${averageStress}<small>%</small></strong></div><div class="stat"><span>混雑率</span><strong>${Math.round(onboardCount / capacity * 100)}<small>%</small></strong></div><div class="stat discovery"><span>乗車中</span><strong>${onboardCount}<small>人</small></strong></div></div>
     </section>
-    ${tutorialVisible ? `<div class="tutorial-note"><p>乗客を選び、空き区画へ配置してください。全員を配置すると発車できます。</p><button data-action="dismiss-tutorial" aria-label="案内を閉じる">×</button></div>` : ''}
+
     <div class="game-layout"><div class="main-panel">
       <section class="station-strip" aria-label="現在駅と次駅"><div><span>現在駅</span><strong>${stations[state.station]}</strong></div><b class="station-arrow" aria-hidden="true">→</b><div class="station-next"><span>次駅</span><strong>${stations[Math.min(stations.length - 1, state.station + 1)]}</strong></div><b class="station-count">${currentLabel()}</b></section>
       <div class="route" aria-label="${stations.length}駅の進行">${stations.map((name, index) => `<span class="route-stop ${index < state.station ? 'passed' : ''} ${index === state.station ? 'current' : ''}" title="${index + 1} ${name}"><i></i>${index === state.station ? `<b>${index + 1}</b>` : ''}</span>`).join('')}</div>
       <section class="board-panel" aria-label="車両の配置盤面"><div class="board-top"><h2>車内配置</h2><div class="board-tools"><div class="door-jumps" aria-label="扉付近へ移動">${[0, 1, 2, 3].map(door => `<button data-action="jump-${door}" aria-label="乗降口${door + 1}付近へ移動">扉${door + 1}</button>`).join('')}</div><button data-action="zoom" aria-pressed="${zoom}">${zoom ? '縮小 −' : '拡大 ＋'}</button><span class="board-direction">北 ↑</span></div></div>
         <div class="board-scroll">${renderBoard()}</div>
-        <div class="board-bottom"><p>${state.finished ? '運行終了。結果を確認できます。' : animating ? '連鎖を再生中' : isExisting ? `移動先を選択してください。` : selectedId ? '空き区画を選択。扉際は2人推奨・3人まで。荷物は通路を0.5マス使います。' : '乗車待ち、または車内の乗客を選択してください。'}</p><span>再配置あと <b>${state.movesLeft}</b>回</span></div>
+        <div class="board-bottom"><p>${state.finished ? '運行終了。結果を確認できます。' : animating ? '連鎖中も配置できます' : isExisting ? `移動先を選択してください。` : selectedId ? '空き区画を選択。扉際は2人推奨・3人まで。荷物は通路を0.5マス使います。' : '乗車待ち、または車内の乗客を選択してください。'}</p><span>移動あと <b>${state.movesLeft}</b>回</span></div>
         <div class="legend"><span><i class="seat-key"></i>座席</span><span><i class="priority-key"></i>優先席</span><span><i class="stand-key"></i>立席</span><span><i class="door-key"></i>扉際 2.5マス・3人まで</span><span><i class="luggage-key"></i>荷物 0.5マス</span><span class="thermal-key"><i></i>ストレス　低～高</span></div>
       </section>
       <section class="queue-panel" aria-label="乗車待ち"><div class="section-line"><h2>乗車待ち <span>${state.waiting.length}人</span></h2></div><div class="passenger-queue">${state.waiting.length ? state.waiting.map(renderPassengerCard).join('') : `<div class="empty-queue">${state.finished ? '運行終了' : '配置完了。発車できます。'}</div>`}</div></section>
     </div><aside class="sidebar" aria-label="選択中の乗客と区間目標">
       <section class="selection-panel" aria-label="選択中の乗客">${person ? renderPersonDetail(person) : '<h2 class="selected-name">乗客を選択</h2><p class="muted">選択した乗客の属性を表示します。</p>'}</section>
-      <section class="preview-panel objective-panel">${state.finished ? '' : '<h2>停車駅のバフ</h2>'}${renderObjective()}</section>
-      <div class="sidebar-actions"><button class="depart-button" data-action="depart" ${state.waiting.length || animating || state.finished ? 'disabled' : ''}><span>${state.finished ? '運行終了' : '発車する'}</span><b aria-hidden="true">→</b></button><button class="undo-button" data-action="undo" ${!state.history.length || animating || state.finished ? 'disabled' : ''}>一手戻す</button>${state.finished ? '<button class="result-button" data-action="result">運行結果を見る</button>' : ''}</div>
+      <section class="run-status"><span>発生したトラブル</span><strong>${summary.events + summary.rare}<small>件</small></strong>${state.perk ? `<button data-action="upgrade" class="acquired-perk">${escape(state.perk.name)}</button>` : ''}</section>
+      <div class="sidebar-actions"><button class="depart-button" data-action="depart" ${state.waiting.length || animating || evaluationQueue.length || state.finished || !state.perk ? 'disabled' : ''}><span>${state.finished ? '運行終了' : '発車する'}</span><b aria-hidden="true">→</b></button>${state.finished ? '<button class="result-button" data-action="result">運行結果を見る</button>' : ''}</div>
       <section class="forecast"><h3>次駅の乗車</h3><strong>${state.schedule[Math.min(stations.length - 1, state.station + 1)].length}<small>人</small></strong><p>${nextComposition()}</p></section>
     </aside></div>
-    <footer class="footer"><span>シード <b>${escape(state.seed)}</b></span></footer>
+    <footer class="footer"><span>シード <b>${escape(state.seed)}</b></span><span>配置時に反応が確定します</span></footer>
     <div id="live" class="sr-only" aria-live="polite">${escape(announcement)}</div>
-    ${animating ? `<div class="wave-overlay" role="status"><div><strong>${activeWave?.index ? `${activeWave.index}連鎖` : '発火'}</strong></div><div>${activeWave?.events.length ? `<b class="wave-event">${escape((activeWave.events.find(event => event.rare) ?? activeWave.events[0]).name)}${activeWave.events.length > 1 ? ` ＋${activeWave.events.length - 1}件` : ''}</b>` : ''}${activeWave?.score ? `<strong class="wave-points">+${activeWave.score.toLocaleString()}点</strong>` : ''}<button data-action="skip">結果へ進む</button></div></div>` : ''}
+    ${animating ? `<div class="wave-overlay" role="status"><strong>${activeWave?.index ? `${activeWave.index}連鎖` : '発火'}</strong><button data-action="skip">演出を省略</button></div>` : ''}
+    ${renderCutin()}
     ${modal ? renderModal() : ''}
   </main>`;
   document.querySelector('.board-scroll')!.scrollLeft = scrollLeft;
@@ -110,20 +127,6 @@ function render(): void {
   if (restore) app.querySelector<HTMLElement>(restore)?.focus({ preventScroll: true });
   focusRequest = null;
 }
-function renderObjective(): string {
-  const previous = state.lastEvaluation;
-  const result = previous ? `<details class="ride-result">
-    <summary>前区間 ＋${previous.score.toLocaleString()}点</summary>
-    <p>目標 ＋${previous.objectiveBonus ?? 0}点 · 分散 ＋${previous.routeBonus ?? 0}点</p>
-    ${previous.events.length ? `<ul>${previous.events.map(event => `<li>${escape(event.name)}</li>`).join('')}</ul>` : ''}
-  </details>` : '';
-  if (state.finished) return result;
-  const choice = state.perk
-    ? `<p><strong>${state.perk.name} · 扉${state.perk.sector + 1}付近</strong></p><p>${state.perk.description}</p>`
-    : `<div class="perk-choices">${perkChoices(state.seed, state.station).map(perk => `<button data-action="perk-${perk.id}"><strong>${perk.name}</strong><span>扉${perk.sector + 1}付近 · ${perk.description.replaceAll('指定エリアで', '').replaceAll('指定エリアの', '')}</span></button>`).join('')}</div>`;
-  return `${choice}<p>目標エリアでトラブル成立 ＋400点 · 次駅の再配置＋1</p>${result}`;
-}
-
 function renderWaveBreakdown(evaluation: Evaluation): string {
   const scoringWaves = evaluation.waves.filter(wave => wave.score > 0);
   if (!scoringWaves.length) return '';
@@ -134,36 +137,44 @@ function nextComposition(): string {
   return Object.keys(portraits).map(species => { const count = people.filter(person => person.species === species).length; return count ? `${species} ${count}` : ''; }).filter(Boolean).join(' · ') || '終着駅では全員降車';
 }
 function renderPassengerCard(person: Passenger): string {
-  return `<button class="passenger-card ${person.id === selectedId ? 'selected' : ''}" data-person="${person.id}" aria-pressed="${person.id === selectedId}" style="--species:${speciesColors[person.species]}">${personIcon(person)}<span class="passenger-name">${person.species}<small>${person.age}代</small></span><span class="passenger-trip">${stations[person.destination]}で降車</span><span class="passenger-stress"><i style="width:${person.stress}%"></i></span><span class="card-tags"><span>ストレス ${person.stress}</span><span>${person.luggage ? '荷物' : ''}${person.sensitivity >= 4 ? ' 着席優先' : ''}</span></span></button>`;
+  return `<button class="passenger-card ${person.special ? 'special-passenger rarity-' + person.special.rarity : ''} ${person.id === selectedId ? 'selected' : ''}" data-person="${person.id}" aria-pressed="${person.id === selectedId}" style="--species:${speciesColors[person.species]}">${personIcon(person)}<span class="passenger-name">${escape(personName(person))}<small>${person.special?.rarity ?? `${person.age}代`}</small></span><span class="passenger-trip">${stations[person.destination]}で降車</span><span class="passenger-stress"><i style="width:${person.stress}%"></i></span><span class="card-tags"><span>ストレス ${person.stress}</span><span>${person.luggage ? '荷物' : ''}${person.sensitivity >= 4 ? ' 着席優先' : ''}</span></span></button>`;
 }
 const activityLabels: Record<Passenger['activity'], string> = { none: '特になし', screen: '画面を見る', call: '通話', talk: '会話', read: '読書', food: '飲食' };
 const postureLabels: Record<Passenger['posture'], string> = { normal: '通常姿勢', wide: '広がった姿勢', lean: '寄り掛かり' };
 const attentionLabels: Record<Passenger['attention'], string> = { aware: '周囲を見る', absorbed: '没頭', asleep: '居眠り' };
 const bagLabels: Record<Passenger['belongings'], string> = { none: '荷物なし', backpack: 'リュック', hand: '手提げ', wheeled: '車輪付き荷物' };
 function renderPersonDetail(person: Passenger): string {
-  return `<div class="person-detail-heading">${personIcon(person)}<h2>${person.species}<small>${person.age}代</small></h2></div><p class="selected-trip">${stations[person.destination]}で降車${person.luggage ? ' · 荷物0.5マス' : ''}${person.bodySpace === 0.5 ? ' · 窮屈' : ''}</p><div class="stress-detail"><span>ストレス <b>${person.stress}</b> / 100</span><i><b style="width:${person.stress}%"></b></i></div><details class="passenger-more" ${window.matchMedia('(min-width: 761px)').matches ? 'open' : ''}><summary>乗客の詳細</summary><dl class="person-properties"><div><dt>降車</dt><dd>${stations[person.destination]}</dd></div><div><dt>立席感度</dt><dd>${person.sensitivity}${person.sensitivity >= 4 ? ' · 着席優先' : ''}</dd></div><div><dt>荷物</dt><dd>${bagLabels[person.belongings]}${person.luggage ? '・通路0.5マス' : ''}</dd></div><div><dt>占有</dt><dd>${person.bodySpace === 0.5 ? '0.5マス・窮屈' : '1マス'}</dd></div><div><dt>行動</dt><dd>${activityLabels[person.activity]}${person.audio === 'leak' ? ' · 音漏れ' : ''}</dd></div><div><dt>状態</dt><dd>${postureLabels[person.posture]} · ${attentionLabels[person.attention]}</dd></div>${person.group ? `<div><dt>同行組</dt><dd>${escape(person.group)}</dd></div>` : ''}</dl></details>`;
+  return `<div class="person-detail-heading">${personIcon(person)}<h2>${escape(personName(person))}<small>${person.special?.rarity ?? `${person.age}代`}</small></h2></div><p class="selected-trip">${person.special ? `${escape(person.special.name)} · ${person.special.rarity} · ` : ''}${stations[person.destination]}で降車${person.luggage ? ' · 荷物0.5マス' : ''}${person.bodySpace === 0.5 ? ' · 窮屈' : ''}</p><div class="stress-detail"><span>ストレス <b>${person.stress}</b> / 100</span><i><b style="width:${person.stress}%"></b></i></div><details class="passenger-more" ${window.matchMedia('(min-width: 761px)').matches ? 'open' : ''}><summary>乗客の詳細</summary><dl class="person-properties"><div><dt>降車</dt><dd>${stations[person.destination]}</dd></div><div><dt>立席感度</dt><dd>${person.sensitivity}${person.sensitivity >= 4 ? ' · 着席優先' : ''}</dd></div><div><dt>荷物</dt><dd>${bagLabels[person.belongings]}${person.luggage ? '・通路0.5マス' : ''}</dd></div><div><dt>占有</dt><dd>${person.bodySpace === 0.5 ? '0.5マス・窮屈' : '1マス'}</dd></div><div><dt>行動</dt><dd>${activityLabels[person.activity]}${person.audio === 'leak' ? ' · 音漏れ' : ''}</dd></div><div><dt>状態</dt><dd>${postureLabels[person.posture]} · ${attentionLabels[person.attention]}</dd></div>${person.group ? `<div><dt>同行組</dt><dd>${escape(person.group)}</dd></div>` : ''}</dl></details>`;
 }
 
 // ===== SECTION: Coordinate-based SVG train =====
 function renderBoard(): string {
-  const people = animating && state.lastEvaluation ? state.lastEvaluation.passengers : state.passengers;
+  const people = state.passengers.map(person => ({
+    ...person,
+    stress: activeWave?.stress[person.id] ?? person.stress,
+  }));
   const boardCells = cells.map(cell => renderCell(cell, people)).join('');
+  const effectPeople = activeEvaluation?.passengers ?? people;
   const links = activeWave ? activeWave.sources.flatMap(id => {
-    const source = people.find(person => person.id === id);
+    const source = effectPeople.find(person => person.id === id);
     if (!source?.cellId) return [];
     const from = cells.find(cell => cell.id === source.cellId)!;
     return activeWave!.receivers.map(receiverId => {
-      const receiver = people.find(person => person.id === receiverId);
+      const receiver = effectPeople.find(person => person.id === receiverId);
       if (!receiver?.cellId) return '';
       const to = cells.find(cell => cell.id === receiver.cellId)!;
-      if (!adjacent(from.id, to.id)) return '';
-      return `<path class="chain-line" pathLength="1" d="M${from.x + from.width / 2},${rowY(from.row) + 280}L${to.x + to.width / 2},${rowY(to.row) + 280}"/>`;
+      const relay = source.special?.skill === 'relay' && cells.some(middle =>
+        middle.id !== from.id && middle.id !== to.id &&
+        adjacent(from.id, middle.id) && adjacent(middle.id, to.id) &&
+        !effectPeople.some(person => person.cellId === middle.id));
+      if (!adjacent(from.id, to.id) && !relay) return '';
+      return `<path class="chain-line ${relay && !adjacent(from.id, to.id) ? 'relay-line' : ''}" pathLength="1" d="M${from.x + from.width / 2},${rowY(from.row) + 280}L${to.x + to.width / 2},${rowY(to.row) + 280}"/>`;
     });
   }).join('') : '';
-  return `<svg class="train-board ${zoom ? 'zoomed' : ''}" viewBox="0 0 20000 3900" role="group" aria-label="北座席、北通路、南通路、南座席の4層。外側の扉際は2.5マス、3人まで。"><defs><pattern id="luggage-hatch" width="90" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="90" height="90" fill="#d9e2ed"/><path d="M0 0V90" stroke="#7890a9" stroke-width="24"/></pattern></defs><rect class="train-outline" x="300" y="250" width="19400" height="3300" rx="250"/><path class="center-line" d="M1000 1900H19000"/>
+  return `<svg class="train-board ${zoom ? 'zoomed' : ''} ${animating && cameraCell && !reducedMotion.matches ? 'camera-focused' : ''}" viewBox="0 0 20000 3900" role="group" aria-label="北座席、北通路、南通路、南座席の4層。外側の扉際は2.5マス、3人まで。"><defs><pattern id="luggage-hatch" width="90" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="90" height="90" fill="#d9e2ed"/><path d="M0 0V90" stroke="#7890a9" stroke-width="24"/></pattern></defs><rect class="train-outline" x="300" y="250" width="19400" height="3300" rx="250"/><path class="center-line" d="M1000 1900H19000"/>
     <text class="row-label" x="820" y="950">座</text><text class="row-label" x="820" y="1600">立</text><text class="row-label" x="820" y="2250">立</text><text class="row-label" x="820" y="2900">座</text>
     ${[2570, 7090, 11610, 16130].map((x, index) => `<path class="closed-door" d="M${x} 340H${x + 1300}M${x + 650} 320V470"/><text class="door-caption" x="${x + 650}" y="215">閉鎖</text><path class="open-door" d="M${x} 3400H${x + 1300}"/><text class="door-caption south" x="${x + 650}" y="3780">↓ 乗降口 ${index + 1}</text>`).join('')}
-    ${boardCells}${links}${renderEventMarkers(people)}${renderBoarding(people)}</svg>`;
+    ${boardCells}${links}${renderEventMarkers(effectPeople)}${renderBoarding(people)}</svg>`;
 }
 function startBoarding(person: Passenger, cellId: string): void {
   if (reducedMotion.matches) return;
@@ -185,12 +196,12 @@ function startBoarding(person: Passenger, cellId: string): void {
 }
 
 function renderBoarding(people: Passenger[]): string {
-  if (animating || state.finished || reducedMotion.matches) return '';
+  if (state.finished || reducedMotion.matches) return '';
   return people.map(person => {
     const walk = boarding.get(person.id);
     if (!walk) return '';
     const elapsed = Math.min(walk.duration, performance.now() - walk.started);
-    return `<g class="boarding-passenger" data-walking="${person.id}" aria-hidden="true"><animateMotion path="${walk.path}" dur="${walk.duration}ms" begin="-${elapsed}ms" fill="freeze"/><svg class="boarding-step" x="-200" y="-200" width="400" height="400" viewBox="0 0 64 64"><use href="${sprite}#${portraits[person.species]}"/></svg></g>`;
+    return `<g class="boarding-passenger" data-walking="${person.id}" aria-hidden="true"><animateMotion path="${walk.path}" dur="${walk.duration}ms" begin="-${elapsed}ms" fill="freeze"/><svg class="boarding-step" x="-200" y="-200" width="400" height="400" viewBox="0 0 64 64"><use href="${portraitHref(person)}"/></svg></g>`;
   }).join('');
 }
 
@@ -219,7 +230,7 @@ function renderCell(cell: Cell, people: Passenger[]): string {
   const reservations = people.filter(person => person.luggage && person.luggageCellId === cell.id);
   const luggageSpace = reservations.length * 0.5;
   const person = selected();
-  const available = !animating && !state.finished && !!person && person.cellId !== cell.id && canPlace(state, person.id, cell.id);
+  const available = !state.finished && modal !== 'upgrade' && !!person && person.cellId !== cell.id && canPlace(state, person.id, cell.id);
   const highlighted = cell.id === hoveredCell;
   const personSelected = occupants.some(person => person.id === selectedId);
   const usage = getCellUsage(people, cell.id);
@@ -245,7 +256,7 @@ function renderCell(cell: Cell, people: Passenger[]): string {
     const flaring = activeWave?.sources.includes(occupant.id) || activeWave?.triggered.includes(occupant.id);
     const motion = portraits[occupant.species];
     const receiving = activeWave?.receivers.includes(occupant.id) === true;
-    return `<g class="person ${compressed ? 'compressed' : ''} ${occupants.length === 3 ? 'crowded' : ''} ${flaring ? 'is-flaring' : ''} ${receiving ? 'is-receiving' : ''} ${selectedId === occupant.id ? 'is-selected' : ''}" ${!animating && !state.finished && !reducedMotion.matches && boarding.has(occupant.id) ? 'visibility="hidden"' : ''} data-person="${occupant.id}" data-body-space="${occupant.bodySpace ?? 1}" aria-label="${occupant.species} ${occupant.age}代 ストレス${stress} ${stations[occupant.destination]}で降車${compressed ? ' 半マスで窮屈' : ''}"><rect class="person-selection" x="${x - 12}" y="${rowY(cell.row) + 8}" width="${tokenWidth + 24}" height="530" rx="45"/>${receiving ? `<ellipse class="receiver-ring" cx="${x + tokenWidth / 2}" cy="${rowY(cell.row) + 270}" rx="${tokenWidth / 2 + 35}" ry="245"/>` : ''}<g class="token-reaction"><svg x="${x}" y="${rowY(cell.row) + 25}" width="${tokenWidth}" height="400" viewBox="0 0 64 64" ${compressed && cell.kind === 'standing' ? 'preserveAspectRatio="none"' : ''}><use class="token-body motion-${motion} ${stress >= 80 ? 'agitated' : ''}" style="${motionStyle(occupant)}" href="${sprite}#${motion}"></use></svg></g><rect class="stress-track" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${tokenWidth - 40}" height="38"/><rect class="stress-fill ${stress >= 80 ? 'hot' : ''}" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${(tokenWidth - 40) * stress / 100}" height="38"/>${occupant.luggage ? `<text class="person-badge" x="${x + tokenWidth - 90}" y="${rowY(cell.row) + 400}">荷</text>` : ''}${occupant.destination === state.station + 1 ? `<text class="person-next" x="${x + 90}" y="${rowY(cell.row) + 180}">↓</text>` : ''}</g>`;
+    return `<g class="person ${occupant.special ? 'special-passenger rarity-' + occupant.special.rarity : ''} ${compressed ? 'compressed' : ''} ${occupants.length === 3 ? 'crowded' : ''} ${flaring ? 'is-flaring' : ''} ${receiving ? 'is-receiving' : ''} ${selectedId === occupant.id ? 'is-selected' : ''}" ${!state.finished && !reducedMotion.matches && boarding.has(occupant.id) ? 'visibility="hidden"' : ''} data-person="${occupant.id}" data-body-space="${occupant.bodySpace ?? 1}" aria-label="${occupant.species} ${occupant.age}代 ストレス${stress} ${stations[occupant.destination]}で降車${compressed ? ' 半マスで窮屈' : ''}"><rect class="person-selection" x="${x - 12}" y="${rowY(cell.row) + 8}" width="${tokenWidth + 24}" height="530" rx="45"/>${receiving ? `<ellipse class="receiver-ring" cx="${x + tokenWidth / 2}" cy="${rowY(cell.row) + 270}" rx="${tokenWidth / 2 + 35}" ry="245"/>` : ''}<g class="token-reaction"><svg x="${x}" y="${rowY(cell.row) + 25}" width="${tokenWidth}" height="400" viewBox="0 0 64 64" ${compressed && cell.kind === 'standing' ? 'preserveAspectRatio="none"' : ''}><use class="token-body motion-${motion} ${stress >= 80 ? 'agitated' : ''}" style="${motionStyle(occupant)}" href="${portraitHref(occupant)}"></use></svg></g><rect class="stress-track" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${tokenWidth - 40}" height="38"/><rect class="stress-fill ${stress >= 80 ? 'hot' : ''}" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${(tokenWidth - 40) * stress / 100}" height="38"/>${occupant.special ? `<text class="special-rarity" x="${x + tokenWidth / 2}" y="${rowY(cell.row) + 80}">${occupant.special.rarity}</text>` : ''}${occupant.luggage ? `<text class="person-badge" x="${x + tokenWidth - 90}" y="${rowY(cell.row) + 400}">荷</text>` : ''}${occupant.destination === state.station + 1 ? `<text class="person-next" x="${x + 90}" y="${rowY(cell.row) + 180}">↓</text>` : ''}</g>`;
   }).join('');
   const capacityHint = !occupants.length && cell.kind === 'door' ? `<text class="door-capacity" x="${cell.x + cell.width / 2}" y="${rowY(cell.row) + 340}">2.5</text>` : '';
   return `<g class="cell ${cell.kind} ${cell.priority ? 'priority' : ''} ${available ? 'available' : ''} ${highlighted ? 'hovered' : ''} ${personSelected ? 'selected-cell' : ''} ${occupants.length === 3 && cell.kind === 'door' ? 'overcrowded' : ''} ${luggageSpace ? 'has-luggage' : ''}" data-cell="${cell.id}" data-usage="${usage}" role="button" tabindex="${cell.id === (hoveredCell ?? cells[0].id) ? '0' : '-1'}" aria-label="${description}"><title>${description}</title><rect class="cell-shape" x="${cell.x + 15}" y="${rowY(cell.row)}" width="${cell.width - 30}" height="560" rx="${cell.kind === 'seat' ? 55 : 15}"/>${heatLayer}${reservationSvg}${!occupants.length && cell.priority ? `<text class="priority-symbol" x="${cell.x + cell.width / 2}" y="${rowY(cell.row) + 350}">優</text>` : ''}${capacityHint}${portraitsSvg}</g>`;
@@ -253,10 +264,16 @@ function renderCell(cell: Cell, people: Passenger[]): string {
 
 // ===== SECTION: Input, preview and deterministic animation =====
 function bindEvents(): void {
+  app.querySelector('.board-scroll')?.addEventListener('pointerdown', () => {
+    pointerActive = true;
+    lastBoardInput = performance.now();
+    const scroll = app.querySelector('.board-scroll')!;
+    scroll.scrollTo({ left: scroll.scrollLeft, behavior: 'instant' });
+  });
   app.querySelectorAll<HTMLButtonElement>('[data-action]').forEach(button => button.addEventListener('click', () => handleAction(button.dataset.action!)));
   app.querySelectorAll<HTMLElement>('[data-person]').forEach(element => element.addEventListener('click', event => {
     event.stopPropagation();
-    if (animating || state.finished) return;
+    if (state.finished || modal === 'upgrade') return;
     selectedId = element.dataset.person!;
     hoveredCell = null;
     enableAudio();
@@ -285,12 +302,12 @@ function bindEvents(): void {
   });
 }
 function highlightCell(cellId: string): void {
-  if (animating || state.finished || !selected()) return;
+  if (state.finished || modal === 'upgrade' || !selected()) return;
   hoveredCell = cellId;
   app.querySelectorAll('[data-cell]').forEach(element => element.classList.toggle('hovered', (element as HTMLElement).dataset.cell === cellId));
 }
 function chooseCell(cellId: string): void {
-  if (animating || state.finished) return;
+  if (state.finished || modal === 'upgrade') return;
   const person = selected();
   if (!person) {
     const occupant = state.passengers.find(passenger => passenger.cellId === cellId);
@@ -317,7 +334,7 @@ function chooseCell(cellId: string): void {
   notify('配置しました。');
   render();
   if (zoom) { const target = cells.find(cell => cell.id === cellId)!; centerBoardAt(target.x + target.width / 2); }
-  if (state.finished) void animateEvaluation();
+  if (state.lastEvaluation) queueEvaluation(state.lastEvaluation);
 }
 function centerBoardAt(x: number): void {
   const scroll = app.querySelector<HTMLElement>('.board-scroll');
@@ -339,8 +356,11 @@ function moveFocus(cellId: string, key: string): void {
 }
 async function handleAction(action: string): Promise<void> {
   if (action.startsWith('perk-')) {
-    if (animating) return;
     state = choosePerk(state, action.slice('perk-'.length));
+    if (!state.perk) return;
+    modal = null;
+    selectedId = state.waiting[0]?.id ?? null;
+    enableAudio();
     render();
     return;
   }
@@ -351,9 +371,8 @@ async function handleAction(action: string): Promise<void> {
     centerBoardAt([3220, 7740, 12260, 16780][door]);
     return;
   }
-  if (action === 'skip') { animationToken++; finishAnimation(); return; }
+  if (action === 'skip') { animationToken++; evaluationQueue.length = 0; finishAnimation(); return; }
   if (action === 'close') { closeModal(); return; }
-  if (action === 'dismiss-tutorial') { tutorialVisible = false; writeStored('chaos-line.tutorial', 'done'); render(); return; }
   if (action === 'depart') {
     if (state.waiting.length || animating || state.finished) return;
     enableAudio();
@@ -361,7 +380,10 @@ async function handleAction(action: string): Promise<void> {
     state = depart(state);
     selectedId = state.waiting[0]?.id ?? null;
     hoveredCell = null;
-    void animateEvaluation();
+    activeWave = null;
+    modal = state.finished ? 'result' : 'upgrade';
+    render();
+    focusModal();
     return;
   }
   if (action === 'undo' && !animating) {
@@ -372,9 +394,10 @@ async function handleAction(action: string): Promise<void> {
     } selectedId = state.waiting[0]?.id ?? null; render(); return;
   }
   if (action === 'zoom') { zoom = !zoom; render(); return; }
-  if (['help', 'catalog', 'sound', 'restart', 'result'].includes(action)) {
+  if (['help', 'catalog', 'sound', 'restart', 'result', 'upgrade'].includes(action)) {
     if (animating) {
       animationToken++;
+      evaluationQueue.length = 0;
       finishAnimation();
     }
     modal = action as typeof modal;
@@ -382,37 +405,76 @@ async function handleAction(action: string): Promise<void> {
     focusModal();
   }
 }
-async function animateEvaluation(): Promise<void> {
-  const evaluation = state.lastEvaluation;
-  if (!evaluation) { render(); return; }
+function queueEvaluation(evaluation: Evaluation): void {
+  if (presented.has(evaluation)) return;
+  presented.add(evaluation);
   summary.events += evaluation.events.filter(event => !event.rare).length;
   summary.rare += evaluation.events.filter(event => event.rare).length;
   summary.maxChain = Math.max(summary.maxChain, evaluation.maxChain);
   evaluation.events.forEach(event => discovered.add(event.type));
   writeStored('chaos-line.discovery', JSON.stringify([...discovered]));
+  // Every accepted evaluation is shown once; queued reactions use a shorter presentation.
+  evaluationQueue.push(evaluation);
+  if (!animating) void animateEvaluation();
+}
+
+function focusWave(wave: Wave, evaluation: Evaluation): void {
+  if (reducedMotion.matches || document.hidden || pointerActive || performance.now() - lastBoardInput < 650) return;
+  const participant = wave.events[0]?.participants[0] ?? wave.triggered[0] ?? wave.sources[0];
+  const rider = evaluation.passengers.find(person => person.id === participant);
+  if (!rider?.cellId) return;
+  cameraCell = rider.cellId;
+  const board = app.querySelector<SVGElement>('.train-board');
+  const target = app.querySelector<SVGGraphicsElement>(`[data-cell="${cameraCell}"]`);
+  const scroll = app.querySelector<HTMLElement>('.board-scroll');
+  if (!board || !target || !scroll) return;
+  board.classList.add('camera-focused');
+  board.classList.remove('camera-pulse');
+  // Read after enlarging the board so the camera can center the true new location.
+  const rectangle = target.getBBox();
+  const bounds = target.getBoundingClientRect();
+  const frame = scroll.getBoundingClientRect();
+  const cell = cells.find(cell => cell.id === cameraCell)!;
+  scroll.scrollTo({
+    left: (cell.x + cell.width / 2) / 20000 * board.getBoundingClientRect().width - scroll.clientWidth / 2,
+    top: scroll.scrollTop + bounds.top + bounds.height / 2 - frame.top - scroll.clientHeight / 2,
+    behavior: 'smooth',
+  });
+  board.style.transformOrigin = `${(rectangle.x + rectangle.width / 2) / 200}% ${(rectangle.y + rectangle.height / 2) / 39}%`;
+  requestAnimationFrame(() => { if (board.isConnected && !pointerActive) board.classList.add('camera-pulse'); });
+}
+
+async function animateEvaluation(): Promise<void> {
+  if (animating) return;
   animating = true;
   const token = ++animationToken;
-  activeWave = null;
-  render();
-  if (!reducedMotion.matches) await new Promise(resolve => setTimeout(resolve, 110));
-  const waves = evaluation.waves;
-  const weights = waves.map(wave => wave.events.some(event => event.rare) ? 1.65 : wave.events.length ? 1.25 : 0.75);
-  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  const beat = Math.min(300, 2800 / Math.max(1, totalWeight));
-  for (const [i, wave] of waves.entries()) {
-    if (token !== animationToken) return;
-    activeWave = wave;
-    render();
-    audio.playWave(wave.index, wave.events.length, wave.events.some(event => event.rare));
-    await new Promise(resolve => setTimeout(resolve, reducedMotion.matches ? 60 : beat * weights[i]));
+  while (evaluationQueue.length && token === animationToken) {
+    const evaluation = evaluationQueue.shift()!;
+    activeEvaluation = evaluation;
+    const waves = evaluation.waves;
+    const budget = evaluationQueue.length ? 420 : 1400;
+    for (const wave of waves) {
+      while (pointerActive && token === animationToken) {
+        await new Promise(resolve => setTimeout(resolve, 16));
+      }
+      if (token !== animationToken) return;
+      activeWave = wave;
+      render();
+      focusWave(wave, evaluation);
+      audio.playWave(wave.index, wave.events.length, wave.events.some(event => event.rare));
+      const duration = reducedMotion.matches ? 40 : wave.events.length
+        ? Math.min(evaluationQueue.length ? 360 : 850, budget / Math.max(1, waves.length) + 400)
+        : Math.min(160, budget / Math.max(1, waves.length));
+      await new Promise(resolve => setTimeout(resolve, duration));
+    }
   }
-  if (token !== animationToken) return;
-  await new Promise(resolve => setTimeout(resolve, reducedMotion.matches ? 0 : 350));
   if (token === animationToken) finishAnimation();
 }
 function finishAnimation(): void {
   animating = false;
   activeWave = null;
+  activeEvaluation = null;
+  cameraCell = null;
   audio.playFinish();
   if (state.finished) {
     const best = Number(readStored('chaos-line.best-score')) || 0;
@@ -421,29 +483,89 @@ function finishAnimation(): void {
   }
   render();
   if (modal) focusModal();
-  notify(`連鎖が確定しました。カオススコア${state.score}。`);
+  notify('車内の反応が収まりました。');
 }
+
 function restart(seed: string): void {
   animationToken++;
   boarding.clear();
+  evaluationQueue.length = 0;
+  activeEvaluation = null;
+  cameraCell = null;
   state = createGame(seed.slice(0, 80));
   summary = { events: 0, rare: 0, maxChain: 0 };
   selectedId = state.waiting[0]?.id ?? null;
   hoveredCell = null;
   animating = false;
   activeWave = null;
-  modal = null;
+  modal = 'upgrade';
   enableAudio();
   render();
+  focusModal();
 }
 
 // ===== SECTION: Dialogs and event discovery =====
+function renderUpgrade(): string {
+  if (state.perk) return `<p>${escape(state.perk.name)}</p><p>${escape(state.perk.description)}</p>`;
+  return `<div class="upgrade-cards">${perkChoices(state.seed, state.station).map(choice => {
+    const special = choice.kind === 'special';
+    return `<button class="upgrade-card ${special ? 'special-choice rarity-' + choice.rarity : ''}" data-action="perk-${choice.id}">
+      <span class="upgrade-kind">${special ? `特殊駒 · ${choice.rarity}` : '区間バフ'}</span>
+      ${special ? `<svg class="upgrade-portrait" viewBox="0 0 64 64" aria-hidden="true"><use href="${import.meta.env.BASE_URL}special-tokens.svg#${choice.skill}"/></svg>` : ''}<strong>${escape(choice.name)}</strong><span>${escape(choice.description)}</span>
+    </button>`;
+  }).join('')}</div>`;
+}
+
+function renderCutin(): string {
+  if (!activeWave?.events.length || modal) return '';
+  const flavors: Record<string, string> = {
+    N01: '肩が触れるたび、互いの立ち位置が狭くなる。',
+    N03: '扉脇の三人が、同時に身を引こうとした。',
+    N07: '空けてほしい席と、動かない乗客。',
+    N11: '背中の荷物が、後ろの乗客を押している。',
+    N19: '通話の声だけが、車内によく響く。',
+    N28: '画面に夢中の乗客が、降り口を塞いでいる。',
+    N51: '残った半マスに体を寄せ、身動きが取れなくなる。',
+    S01: '車両の両端で、同時に声が上がる。',
+    S02: '四つの降り口が、どこもざわついている。',
+    S03: '背負い荷物も車輪付き荷物も、通路でぶつかる。',
+    S04: '通話と会話と音漏れが、互いの声をかき消す。',
+    S05: '違う事情の乗客たちが、同じ車内で譲れなくなる。',
+    S06: '世代の違う乗客たちが、動くタイミングを合わせられない。',
+    S07: 'あちこちから降車の声が上がり、通路が詰まる。',
+    S08: '静かだった場所へ、不満が一気に伝わった。',
+    S09: '端で始まった反応が、離れた場所まで届いた。',
+    S10: '別々の連鎖が交わり、周囲をまとめて巻き込む。',
+  };
+  const categoryFlavor: Record<string, string> = {
+    '空間・座席': '互いの動きが重なり、身を引く場所がなくなった。',
+    '荷物': '荷物を動かした先にも、別の乗客がいる。',
+    '音・行動': '小さな音が、張り詰めた車内に響き続ける。',
+    '乗降': '降りたい乗客と、動けない乗客が向き合う。',
+    '同行': '同行者を探す動きが、周囲の乗客を巻き込んだ。',
+  };
+  return `<div class="event-cutin" aria-live="polite"><div class="cutin-stack">
+    ${activeWave.events.map(event => {
+      const definition = eventDefinitions.find(entry => entry.id === event.type);
+      const flavor = flavors[event.type] ?? categoryFlavor[definition?.category ?? ''] ??
+        'わずかな接触から、周囲の不満が一斉に表に出る。';
+      return `<article class="cutin-metal ${event.rare ? 'rare-cutin' : ''}" data-event="${event.type}">
+        <span class="cutin-tag">${event.rare ? '特殊トラブル' : `${activeWave!.index}連鎖`}</span>
+        <strong>${escape(event.name)}</strong><p>${flavor}</p>
+      </article>`;
+    }).join('')}
+  </div></div>`;
+}
+
 function renderModal(): string {
   let title = '';
   let body = '';
-  if (modal === 'help') {
+  if (modal === 'upgrade') {
+    title = state.perk ? '獲得した強化' : '強化を1つ獲得';
+    body = renderUpgrade();
+  } else if (modal === 'help') {
     title = '遊び方';
-    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際の2.5マス区画は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>全員を配置して「発車する」を押します。各停車駅で3つのバフから1つ選べます。指定エリアでトラブルを起こすと報酬を獲得します。複数エリアで起こすと加点され、同じエリアの通常トラブルは3件目から基本点が40%になります。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">得点はトラブルの件数・種類・連鎖数で決まります。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
+    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際の2.5マス区画は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>各停車駅で特殊駒1枚とバフ2枚から1つ選びます。配置すると反応が確定し、ストレスが伝播します。全員を配置したら発車できます。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">車内のストレスとトラブルを増やしていきます。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
   } else if (modal === 'catalog') {
     title = 'トラブル図鑑';
     body = `<p class="dialog-note">通常${eventDefinitions.filter(event => !event.rare).length}種・特殊${eventDefinitions.filter(event => event.rare).length}種。連鎖でストレスが80以上になった乗客を含むと成立します。</p><div class="catalog-controls"><input id="catalog-search" placeholder="名前・条件で探す" aria-label="トラブルを検索" value="${escape(search)}"><select id="catalog-filter" aria-label="図鑑の絞り込み"><option value="all" ${catalogFilter === 'all' ? 'selected' : ''}>すべて</option><option value="normal" ${catalogFilter === 'normal' ? 'selected' : ''}>通常</option><option value="rare" ${catalogFilter === 'rare' ? 'selected' : ''}>特殊</option><option value="found" ${catalogFilter === 'found' ? 'selected' : ''}>発見済み</option><option value="new" ${catalogFilter === 'new' ? 'selected' : ''}>未発見</option></select></div><div class="catalog-list">${catalogCards()}</div>`;
@@ -455,9 +577,9 @@ function renderModal(): string {
     body = `<form id="restart-form"><label class="field-label" for="seed-input">シード（同じ値で乗客と乗降を再現）</label><input class="seed-input" id="seed-input" maxlength="80" value="${escape(state.seed)}"><div class="modal-actions"><button type="button" class="secondary-button" data-action="random-seed">別のシード</button><button class="primary-button" type="submit">このシードで始める</button></div></form>`;
   } else {
     title = state.finished === 'terminal' ? '終着駅に到着' : state.finished === 'capacity' ? '混雑率200%で終了' : '運行結果';
-    body = `<div class="result-hero"><p class="eyebrow">カオススコア</p><strong>${state.score.toLocaleString()}</strong><p>${state.station + 1}駅目 · ${stations[state.station]}</p></div><div class="result-stats"><div><b>${summary.events}</b>通常トラブル</div><div><b>${summary.rare}</b>特殊イベント</div><div><b>${summary.maxChain}</b>最大連鎖</div><div><b>${state.discovered.length}</b>今回の発見</div></div><ul class="event-log">${state.lastEvaluation?.events.map(event => `<li><span>${escape(event.name)} ${event.rare ? '<b class="rare-mark">特殊</b>' : ''}</span><b>基本 ${event.points}</b></li>`).join('') ?? ''}</ul>${state.lastEvaluation ? renderWaveBreakdown(state.lastEvaluation) : ''}<p class="dialog-note">最高記録 ${Math.max(state.score, Number(readStored('chaos-line.best-score')) || 0).toLocaleString()}点 · シード ${escape(state.seed)}</p><div class="modal-actions"><button class="secondary-button" data-action="catalog">図鑑を見る</button><button class="primary-button" data-action="same-seed">同じシードで再挑戦</button></div>`;
+    body = `<div class="result-hero"><p class="eyebrow">車内の状況</p><strong>${summary.events + summary.rare}<small>件のトラブル</small></strong><p>${state.station + 1}駅目 · ${stations[state.station]}</p></div><div class="result-stats"><div><b>${summary.events}</b>通常トラブル</div><div><b>${summary.rare}</b>特殊イベント</div><div><b>${summary.maxChain}</b>最大連鎖</div><div><b>${state.discovered.length}</b>今回の発見</div></div><ul class="event-log">${state.lastEvaluation?.events.map(event => `<li><span>${escape(event.name)} ${event.rare ? '<b class="rare-mark">特殊</b>' : ''}</span><b>基本 ${event.points}</b></li>`).join('') ?? ''}</ul><details class="result-numbers"><summary>集計詳細</summary><p>内部カオス値 ${state.score.toLocaleString()}</p>${state.lastEvaluation ? renderWaveBreakdown(state.lastEvaluation) : ''}</details><p class="dialog-note">シード ${escape(state.seed)}</p><div class="modal-actions"><button class="secondary-button" data-action="catalog">図鑑を見る</button><button class="primary-button" data-action="same-seed">同じシードで再挑戦</button></div>`;
   }
-  return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header class="modal-header"><h2 id="modal-title">${title}</h2><button class="close-button" data-action="close" aria-label="閉じる">×</button></header>${body}</section></div>`;
+  return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header class="modal-header"><h2 id="modal-title">${title}</h2>${modal === 'upgrade' && !state.perk ? '' : '<button class="close-button" data-action="close" aria-label="閉じる">×</button>'}</header>${body}</section></div>`;
 }
 function catalogCards(): string {
   const normalized = search.trim().toLocaleLowerCase();
@@ -465,7 +587,7 @@ function catalogCards(): string {
   return filtered.length ? filtered.map(event => `<article class="catalog-card ${event.rare ? 'rare' : ''} ${discovered.has(event.id) ? 'discovered' : ''}"><div class="catalog-card-top"><h3>${escape(event.name)}</h3><b>${event.points}</b></div><p>${escape(event.description)}</p><footer><span>${event.rare ? '特殊' : event.category}</span><span>${discovered.has(event.id) ? '発見済み' : '未発見'}</span></footer></article>`).join('') : '<p class="empty-catalog">条件に合うトラブルはありません。</p>';
 }
 function updateCatalogList(): void { const list = app.querySelector('.catalog-list'); if (list) list.innerHTML = catalogCards(); }
-function closeModal(): void { modal = null; render(); app.querySelector<HTMLButtonElement>('[data-action="help"]')?.focus(); }
+function closeModal(): void { if (modal === 'upgrade' && !state.perk) return; modal = null; render(); app.querySelector<HTMLButtonElement>('[data-action="help"]')?.focus(); }
 function focusModal(): void { app.querySelector<HTMLElement>('.modal button, .modal input')?.focus(); }
 app.addEventListener('click', event => {
   const action = (event.target as Element).closest<HTMLElement>('[data-action]')?.dataset.action;
@@ -473,6 +595,8 @@ app.addEventListener('click', event => {
   if (action === 'random-seed') { const input = app.querySelector<HTMLInputElement>('#seed-input'); if (input) input.value = freshSeed(); }
   if (action === 'audio-retry') enableAudio();
 });
+document.addEventListener('pointerup', () => { pointerActive = false; lastBoardInput = performance.now(); });
+document.addEventListener('pointercancel', () => { pointerActive = false; });
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && modal) closeModal();
   if (event.key === 'Tab' && modal) {
@@ -484,6 +608,7 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('visibilitychange', () => {
   document.documentElement.classList.toggle('page-hidden', document.hidden);
-  if (document.hidden) { audio.stop(); if (animating) { animationToken++; finishAnimation(); } }
+  if (document.hidden) { audio.stop(); if (animating) { animationToken++; evaluationQueue.length = 0; finishAnimation(); } }
 });
 render();
+focusModal();

@@ -1,6 +1,6 @@
 import { capacity, cellById, cells } from "./board.ts";
 import { perkChoices, troubleSector } from "./perks.ts";
-import { evaluate } from "./evaluation.ts";
+import { evaluate, evaluatePlacement } from "./evaluation.ts";
 import { generateSchedule, createInitialPassengers, initialPassengerCount, seededRandom } from "./generation.ts";
 import { allocatePassenger, hasLegalPlacement, normalizeBodySpace } from "./occupancy.ts";
 import type { Evaluation, GameState, Snapshot } from "./types.ts";
@@ -73,10 +73,22 @@ export function choosePerk(state: GameState, id: string): GameState {
   const perk = perkChoices(state.seed, state.station).find(offer => offer.id === id);
   if (!perk) return state;
   const extraMoves = perk.id === "switch" ? 2 : 0;
+  const special = perk.kind === "special" ? {
+    ...state.schedule[state.station][0],
+    id: "special-" + state.station,
+    species: "客人" as const,
+    age: 40, sensitivity: 3, luggage: false, belongings: "none" as const,
+    group: null, attention: "aware" as const, audio: "quiet" as const,
+    activity: perk.skill === "bridge" ? "none" as const : "talk" as const,
+    posture: perk.skill === "bridge" ? "lean" as const : "normal" as const,
+    cellId: null, luggageCellId: null, bodySpace: 1 as const,
+    stress: perk.rarity === "SSS" ? 76 : perk.rarity === "SS" ? 70 : 64,
+    destination: 6, boardedAt: state.station,
+    special: { name: perk.name, rarity: perk.rarity!, skill: perk.skill! },
+  } : null;
   return {
-    ...state,
-    perk,
-    objective: perk.sector,
+    ...state, perk, objective: perk.sector,
+    waiting: special ? [special, ...state.waiting] : state.waiting,
     movesLeft: state.movesLeft + extraMoves,
     history: state.history.map(entry => ({ ...entry, movesLeft: entry.movesLeft + extraMoves })),
   };
@@ -115,11 +127,23 @@ function commit(
   result: Evaluation,
   finished: GameState["finished"],
 ): GameState {
-  const bonuses = routeBonuses(result, state.objective);
+  const priorEvents = state.stationEvents ?? [];
+  const positions = new Map(result.passengers.map(person => [person.id, person.cellId]));
+  const priorSectors = new Set(state.stationSectors ?? []);
+  const currentSectors = new Set(result.events.map(event =>
+    event.sector ?? troubleSector(event.participants, positions)).filter(sector => sector >= 0));
+  const allSectors = new Set([...priorSectors, ...currentSectors]);
+  const bonuses = {
+    routeBonus: (Math.max(0, allSectors.size - 1) - Math.max(0, priorSectors.size - 1)) * 250,
+    objectiveBonus: !state.objectiveFulfilled && state.objective !== null && currentSectors.has(state.objective) ? 400 : 0,
+  };
   const score = result.score + bonuses.routeBonus + bonuses.objectiveBonus;
   return {
     ...state,
     passengers: result.passengers,
+    stationEvents: [...priorEvents, ...result.events],
+    stationSectors: [...allSectors],
+    objectiveFulfilled: state.objectiveFulfilled || bonuses.objectiveBonus > 0,
     score: state.score + score,
     scoredEvents: [
       ...new Set([
@@ -140,11 +164,11 @@ function commit(
 }
 
 function finishIfBlocked(state: GameState): GameState {
-  if (state.passengers.length >= capacity * 2) return commit(state, evaluate(state), "capacity");
+  if (state.passengers.length >= capacity * 2) return { ...state, finished: "capacity" };
   if (!state.waiting.length || state.waiting.some(person => hasLegalPlacement(state.passengers, person))) return state;
   const movable = state.movesLeft > 0 && state.passengers.some(person =>
     cells.some(cell => cell.id !== person.cellId && allocatePassenger(state.passengers, person, cell.id) !== null));
-  return movable ? state : commit(state, evaluate(state), "no-space");
+  return movable ? state : { ...state, finished: "no-space" };
 }
 
 export function place(
@@ -167,7 +191,7 @@ export function place(
     history: [...state.history, snapshot(state)],
     lastEvaluation: null,
   };
-  return finishIfBlocked(next);
+  return finishIfBlocked(commit(next, evaluatePlacement(next, passengerId), null));
 }
 
 export function move(
@@ -184,7 +208,7 @@ export function move(
     !canPlace(state, passengerId, cellId)
   )
     return state;
-  return finishIfBlocked({
+  const next = {
     ...state,
     passengers: normalizeBodySpace(state.passengers.map((passenger) =>
       passenger.id === passengerId ? allocatePassenger(state.passengers, person, cellId)! : passenger,
@@ -192,7 +216,8 @@ export function move(
     movesLeft: state.movesLeft - 1,
     history: [...state.history, snapshot(state)],
     lastEvaluation: null,
-  });
+  };
+  return finishIfBlocked(commit(next, evaluatePlacement(next, passengerId), null));
 }
 
 export function undo(state: GameState): GameState {
@@ -220,12 +245,12 @@ export function preview(
   const passengers = person.cellId
     ? state.passengers.map((passenger) => passenger.id === passengerId ? allocated : passenger)
     : [...state.passengers, allocated];
-  return evaluate({ ...state, passengers: normalizeBodySpace(passengers) });
+  return evaluatePlacement({ ...state, passengers: normalizeBodySpace(passengers) }, passengerId);
 }
 
 export function depart(state: GameState): GameState {
   if (state.finished || state.waiting.length) return state;
-  const committed = commit(state, evaluate(state), null);
+  const committed = state;
   const station = state.station + 1;
   if (station >= 6)
     return {
@@ -239,17 +264,18 @@ export function depart(state: GameState): GameState {
     (person) => person.destination > station,
   ));
   const waiting = state.schedule[station].map((person) => ({ ...person }));
-  const noSpace =
-    waiting.length > 0 &&
-    !waiting.some(person => hasLegalPlacement(passengers, person));
-  return {
+  return finishIfBlocked({
     ...committed,
     station,
     passengers,
     waiting,
     objective: null,
+    stationEvents: [],
+    stationSectors: [],
+    objectiveFulfilled: false,
+    lastEvaluation: null,
     perk: undefined,
-    movesLeft: committed.lastEvaluation?.objectiveBonus ? 3 : 2,
-    finished: noSpace ? "no-space" : null,
-  };
+    movesLeft: committed.objectiveFulfilled ? 3 : 2,
+    finished: null,
+  });
 }
