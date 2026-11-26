@@ -522,10 +522,10 @@ function moveCamera(destination: typeof cameraView, milliseconds: number, scroll
   requestAnimationFrame(step);
 }
 function focusWave(wave: Wave, evaluation: Evaluation): void {
-  if (reducedMotion.matches || (!wave.events.length && cameraCell)) return;
+  if (reducedMotion.matches || !wave.events.length) return;
   const focusToken = ++cameraFocusToken;
   const eventOffset = activeEventOffset;
-  const participant = currentEvents()[0]?.participants[0] ?? wave.triggered[0] ?? wave.sources[0];
+  const participant = currentEvents()[0]?.participants[0];
   const rider = evaluation.passengers.find(person => person.id === participant);
   if (!rider?.cellId) return;
   const attempt = (): void => {
