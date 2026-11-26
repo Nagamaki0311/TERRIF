@@ -1925,3 +1925,89 @@ strong, b, .count, .card-tags, .preview-score {
   .wave-overlay > strong { font-size: 16px; }
   .wave-overlay > button { font-size: 11px; }
 }
+
+/* Titanium, cyan upholstery and amber priority seats. */
+:root {
+  --ink: #edf5ff;
+  --muted: #b0c2d6;
+  --paper: #182434;
+  --line: #435870;
+  --teal: #53dfed;
+  --red: #ff9777;
+  color: var(--ink);
+  background: #0c121d;
+}
+body { background: radial-gradient(ellipse at 50% 0, #263b54, #0c121d 75%); }
+.topbar { border-color: #6b839d; }
+.brand-mark, .primary-button, .depart-button:not(:disabled) {
+  background: linear-gradient(#d5faff 0%, #62d7ec 18%, #20758e 52%, #3babc6 80%, #133949);
+  color: #f5ffff;
+  border: 1px solid #9bdeeb;
+  box-shadow: inset 0 1px 0 #fff9, inset 0 -3px 0 #071824a0, 0 3px 8px #0006;
+  text-shadow: 0 2px 2px #092332;
+}
+h1, h2, .station-strip strong, .stat strong {
+  color: #edf7ff;
+  text-shadow: 0 1px 0 #07111f, 1px 0 0 #07111f, -1px 0 0 #07111f, 0 3px 2px #0009;
+}
+.topbar, .board-panel, .preview-panel, .selection-panel, .passenger-card, .modal, .station-strip {
+  background: linear-gradient(160deg, #2d4055, #142030 55%, #22344a);
+  border-color: #647e9a;
+  box-shadow: inset 0 1px 0 #cbe7ff44, inset 0 -2px 0 #050c1680, 0 3px 9px #0004;
+}
+.topbar { background: none; box-shadow: none; }
+.station-next, .board-direction, .selected-trip, .card-tags, .passenger-trip,
+.person-properties dt, .stress-detail span, .person-detail-heading h2 small,
+.stat > span, .preview-caption, .dialog-note, .forecast { color: #c5d7e9; }
+.stat.score strong { color: #ffab89; }
+.passenger-card.selected { border-color: #70ecff; background: linear-gradient(145deg,#2e6377,#182b3c); }
+.toolbar button:hover, .board-tools button:hover { background: #29455e; }
+.sidebar-actions, .wave-overlay { background: linear-gradient(#30445a,#101d2d); color: #f2f8ff; border-color: #7791ac; }
+button:disabled { opacity: .55; }
+input, select { background: #101b2a; color: #f1f7ff; border: 1px solid #6b839c; }
+.modal, .catalog-card, .help-callout, .upgrade-card { color: #edf5ff; background-color: #18283b; }
+.upgrade-card { background: linear-gradient(150deg,#344c65,#142034); border-color: #7f9bb8; }
+.special-choice { background: linear-gradient(145deg,#51416b,#241d39); border-color: #d3b8ff; }
+.upgrade-kind { color: #c8dded; }
+.special-choice .upgrade-kind { color: #e1d1ff; }
+.special-choice.rarity-SS { background: linear-gradient(145deg,#66532d,#302817); border-color: #ebce82; }
+.special-choice.rarity-SSS { background: linear-gradient(145deg,#5c427d,#281a40); border-color: #e1bcff; }
+.special-choice.rarity-SS .upgrade-kind { color: #ffe2a1; }
+.legend { color: #c5d7e9; }
+.catalog-controls input, .catalog-controls select, .seed-input { background: #101b2a; color: #f1f7ff; }
+.catalog-card.rare { background: #352e24; border-color: #d6b879; }
+.rare-mark, .preview-events li.rare { color: #f1ce88; }
+.result-button { background: linear-gradient(#405b76,#20344b); color: #f2f8ff; }
+.primary-button, .depart-button:not(:disabled) {
+  background: linear-gradient(#366d83,#154158 52%,#265d78);
+}
+.train-outline { fill: #101d2d; stroke: #94aec2; stroke-width: 35px; }
+.cell .cell-shape { stroke-width: 20px; }
+.cell.seat .cell-shape { fill: url(#metal-seat); stroke: #8ed6eb; }
+.cell.seat.priority .cell-shape { fill: url(#metal-priority); stroke: #f1cd89; }
+.cell.standing .cell-shape { fill: url(#metal-floor); stroke: #53677d; }
+.cell.door .cell-shape { fill: #334257; stroke: #bfcee0; stroke-dasharray: 45 22; }
+.seat-back { stroke: #d3f9ff; stroke-width: 48px; stroke-linecap: round; pointer-events: none; }
+.priority .seat-back { stroke: #fff0c8; }
+.priority-symbol { fill: #fff4d7; }
+.row-label, .door-caption { fill: #d5e4f2; }
+.door-caption.south { fill: #7ce9f2; }
+.closed-door { stroke: #8194a9; }
+.open-door { stroke: #5fe8e9; }
+.legend .seat-key { background: #399fc5; border-color: #a7e8ff; }
+.legend .stand-key { background: #172535; border-color: #7c91a9; }
+.legend .priority-key { background: #bc8a3e; border-color: #efcf93; }
+.cell.available .cell-shape { stroke: #5deaff; }
+.cell.hovered .cell-shape, .cell.selected-cell .cell-shape { stroke: #fff4b4; stroke-width: 35px; }
+.thermal-cell { mix-blend-mode: screen; }
+.event-cutin { filter: drop-shadow(0 9px 10px #0009); }
+.cutin-metal { border-color: #a5d7f1; background: linear-gradient(155deg,#6287a1,#182f44 22%,#0b1929 60%,#355a77); }
+.cutin-metal strong { text-shadow: 0 2px 0 #05101d, 0 4px 0 #071524, 0 6px 9px #000c; }
+.cutin-metal.rare-cutin { border-color: #ffe6a2; background: linear-gradient(145deg,#8d723e,#352e24 24%,#161f31 70%,#675438); }
+@media (prefers-reduced-motion: no-preference) {
+  .cutin-metal { animation: metal-arrival .24s cubic-bezier(.12,.75,.2,1) both; }
+  @keyframes metal-arrival {
+    from { transform: translateX(45px) perspective(700px) rotateY(-9deg); opacity: 0; }
+    to { transform: translateX(0) perspective(700px) rotateY(0); opacity: 1; }
+  }
+}
