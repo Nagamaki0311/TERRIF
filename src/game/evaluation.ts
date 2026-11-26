@@ -23,8 +23,8 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
   const passengers = state.passengers.map((person) => ({ ...person }));
   const standing = (person: Passenger) =>
     cellById.get(person.cellId!)!.kind !== "seat";
-  const inPerkSector = (cell: (typeof cells)[number]) =>
-    state.perk?.sector === sectorAt(cell.x + cell.width / 2);
+  const inPerkScope = (cell: (typeof cells)[number]) =>
+    state.perk?.scope === "global" || state.perk?.sector === sectorAt(cell.x + cell.width / 2);
   const hasStandingNeed = passengers.some(
     (person) => standing(person) && person.sensitivity >= 4,
   );
@@ -64,14 +64,16 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
       (cell.kind === "door" && occupants === 3 ? 8 : 0) +
       luggageNeighbors * 2 +
       (cell.priority && person.sensitivity < 4 && hasStandingNeed ? 2 : 0) + relationBurden;
-    const perk = state.perk?.kind !== "special" && inPerkSector(cell) ? state.perk?.id : undefined;
-    const perkBurden = perk === "quiet" && nearby.length <= 1 ? 34
-      : perk === "seats" && cell.kind === "seat" ? 26
-      : perk === "luggage" && (person.luggage || nearby.some(other => other.luggage)) ? 24
-      : perk === "switch" && standing(person) ? 12 : 0;
+    const perk = state.perk?.kind === "buff" && inPerkScope(cell) ? state.perk : undefined;
+    const receivesBuff = perk?.effect === "quiet" && nearby.length <= 1
+      || perk?.effect === "seats" && cell.kind === "seat"
+      || perk?.effect === "luggage" && (person.luggage || nearby.some(other => other.luggage))
+      || perk?.effect === "switch" && standing(person);
+    const perkBurden = receivesBuff ? perk!.strength! : 0;
     const aura = nearby.filter(other => other.special?.skill === "aura")
       .reduce((sum, other) => sum + rank(other) * 8, 0);
-    const effectiveRecovery = perk === "seats" && cell.kind === "seat" ? 0 : recovery;
+    const effectiveRecovery = perk?.effect === "seats" && cell.kind === "seat"
+      ? perk.scope === "global" ? recovery / 2 : 0 : recovery;
     person.stress = Math.min(
       100,
       Math.max(0, person.stress - effectiveRecovery) + burden + perkBurden + aura,
@@ -133,13 +135,13 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
         if (sender.special?.skill === "relay") return sum + 4 * rank(sender);
         return sum;
       }, 0);
-      const resonant = state.perk?.id === "bridge" && inPerkSector(target) && target.kind === "standing"
+      const resonant = state.perk?.effect === "bridge" && inPerkScope(target) && target.kind === "standing"
         ? senders.filter(sender => {
           const origin = cellById.get(sender.cellId!)!;
           return origin.kind === "standing" && origin.row !== target.row;
         }).length
         : 0;
-      const after = Math.min(100, person.stress + (senders.length + resonant) * 25 + specialBoost);
+      const after = Math.min(100, person.stress + senders.length * 25 + resonant * (state.perk?.strength ?? 0) + specialBoost);
       if (person.stress < 80 && after >= 80) triggered.push(person.id);
       return after;
     });

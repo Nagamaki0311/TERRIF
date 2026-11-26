@@ -15,7 +15,7 @@ let state: GameState = createGame(freshSeed());
 let selectedId: string | null = state.waiting[0]?.id ?? null;
 let hoveredCell: string | null = null;
 const boarding = new Map<string, { path: string; started: number; duration: number }>();
-let zoom = false;
+let zoom = window.matchMedia('(max-width: 760px)').matches;
 let modal: 'help' | 'catalog' | 'sound' | 'restart' | 'result' | 'upgrade' | null = 'upgrade';
 let search = '';
 let catalogFilter = 'all';
@@ -25,6 +25,14 @@ let activeEvaluation: Evaluation | null = null;
 const evaluationQueue: Evaluation[] = [];
 const presented = new WeakSet<Evaluation>();
 let cameraCell: string | null = null;
+let cameraPanToken = 0;
+let cameraLastFocus = 0;
+let activeEventOffset = 0;
+let renderedWave: Wave | null = null;
+const cutinHost = document.createElement('div');
+cutinHost.id = 'cutin-host';
+document.body.append(cutinHost);
+let cutinMarkup = '';
 let pointerActive = false;
 let lastBoardInput = 0;
 let animationToken = 0;
@@ -80,6 +88,8 @@ function render(): void {
   const activeSelector = active?.dataset.person ? `[data-person="${active.dataset.person}"]` : active?.dataset.cell ? `[data-cell="${active.dataset.cell}"]` : active?.dataset.action ? `[data-action="${active.dataset.action}"]` : null;
   const scroll = document.querySelector('.board-scroll');
   const scrollLeft = scroll?.scrollLeft ?? 0;
+  const scrollTop = scroll?.scrollTop ?? 0;
+  const animationTimes = renderedWave === activeWave ? effectAnimationTimes() : new Map<string, number>();
   const queueScroll = document.querySelector('.passenger-queue')?.scrollLeft ?? 0;
   const person = selected();
   const isExisting = !!person?.cellId;
@@ -117,10 +127,16 @@ function render(): void {
     <footer class="footer"><span>シード <b>${escape(state.seed)}</b></span><span>配置時に反応が確定します</span></footer>
     <div id="live" class="sr-only" aria-live="polite">${escape(announcement)}</div>
     ${animating ? `<div class="wave-overlay" role="status"><strong>${activeWave?.index ? `${activeWave.index}連鎖` : '発火'}</strong><button data-action="skip">演出を省略</button></div>` : ''}
-    ${renderCutin()}
     ${modal ? renderModal() : ''}
   </main>`;
   document.querySelector('.board-scroll')!.scrollLeft = scrollLeft;
+  document.querySelector('.board-scroll')!.scrollTop = scrollTop;
+  restoreEffectAnimationTimes(animationTimes);
+  renderedWave = activeWave;
+  // Keep cut-ins outside the replaced board DOM so selecting the next piece cannot restart them.
+  const nextCutin = renderCutin();
+  if (nextCutin !== cutinMarkup) { cutinHost.innerHTML = nextCutin; cutinMarkup = nextCutin; }
+  cutinHost.hidden = !!modal;
   document.querySelector('.passenger-queue')!.scrollLeft = queueScroll;
   bindEvents();
   const restore = focusRequest ?? activeSelector;
@@ -168,7 +184,7 @@ function renderBoard(): string {
         adjacent(from.id, middle.id) && adjacent(middle.id, to.id) &&
         !effectPeople.some(person => person.cellId === middle.id));
       if (!adjacent(from.id, to.id) && !relay) return '';
-      return `<path class="chain-line ${relay && !adjacent(from.id, to.id) ? 'relay-line' : ''}" pathLength="1" d="M${from.x + from.width / 2},${rowY(from.row) + 280}L${to.x + to.width / 2},${rowY(to.row) + 280}"/>`;
+      return `<path data-effect="link-${id}-${receiverId}" class="chain-line ${relay && !adjacent(from.id, to.id) ? 'relay-line' : ''}" pathLength="1" d="M${from.x + from.width / 2},${rowY(from.row) + 280}L${to.x + to.width / 2},${rowY(to.row) + 280}"/>`;
     });
   }).join('') : '';
   return `<svg class="train-board ${zoom ? 'zoomed' : ''} ${animating && cameraCell && !reducedMotion.matches ? 'camera-focused' : ''}" viewBox="0 0 20000 3900" role="group" aria-label="北座席、北通路、南通路、南座席の4層。外側の扉際は3人まで。"><defs><linearGradient id="metal-seat" x2="0" y2="1"><stop stop-color="#bdf5ff"/><stop offset=".2" stop-color="#3799c0"/><stop offset=".52" stop-color="#205576"/><stop offset=".85" stop-color="#49b0d1"/><stop offset="1" stop-color="#12324e"/></linearGradient><linearGradient id="metal-priority" x2="0" y2="1"><stop stop-color="#ffecc2"/><stop offset=".3" stop-color="#d6a14c"/><stop offset=".75" stop-color="#866028"/><stop offset="1" stop-color="#483421"/></linearGradient><pattern id="metal-floor" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="#1b2939"/><path d="M0 60H120M60 0V120" stroke="#304154" stroke-width="8"/></pattern><pattern id="luggage-hatch" width="90" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="90" height="90" fill="#d9e2ed"/><path d="M0 0V90" stroke="#7890a9" stroke-width="24"/></pattern></defs><rect class="train-outline" x="300" y="250" width="19400" height="3300" rx="250"/><path class="center-line" d="M1000 1900H19000"/>
@@ -206,7 +222,7 @@ function renderBoarding(people: Passenger[]): string {
 }
 
 function renderEventMarkers(people: Passenger[]): string {
-  return (activeWave?.events ?? []).map(event => {
+  return currentEvents().map(event => {
     const positions = event.participants.map(id => people.find(person => person.id === id)).filter((person): person is Passenger => !!person?.cellId).map(person => cells.find(cell => cell.id === person.cellId)!);
     if (!positions.length) return '';
     const x = positions.reduce((sum, cell) => sum + cell.x + cell.width / 2, 0) / positions.length;
@@ -214,7 +230,7 @@ function renderEventMarkers(people: Passenger[]): string {
     const emblem = event.rare
       ? '<path d="M0 -210 210 0 0 210 -210 0Z"/>'
       : '<path d="M-120 -120H120V120H-120Z" transform="rotate(45)"/>';
-    return `<g class="event-impact ${event.rare ? 'rare' : ''}" transform="translate(${x} ${y})" aria-hidden="true"><g class="impact-rings"><circle r="240"/><circle r="310"/></g><g class="impact-rays"><path d="M0-260V-350 M0 260V350 M-260 0H-350 M260 0H350 M-185-185L-245-245 M185 185L245 245 M185-185L245-245 M-185 185L-245 245"/></g><g class="event-marker ${event.rare ? 'rare' : ''}">${emblem}</g></g>`;
+    return `<g data-effect="${event.id}" class="event-impact ${event.rare ? 'rare' : ''}" transform="translate(${x} ${y})" aria-hidden="true"><g class="impact-rings"><circle r="240"/><circle r="310"/></g><g class="impact-rays"><path d="M0-260V-350 M0 260V350 M-260 0H-350 M260 0H350 M-185-185L-245-245 M185 185L245 245 M185-185L245-245 M-185 185L-245 245"/></g><g class="event-marker ${event.rare ? 'rare' : ''}">${emblem}</g></g>`;
   }).join('');
 }
 function rowY(row: number): number { return 620 + row * 650; }
@@ -266,6 +282,7 @@ function renderCell(cell: Cell, people: Passenger[]): string {
 function bindEvents(): void {
   app.querySelector('.board-scroll')?.addEventListener('pointerdown', () => {
     pointerActive = true;
+    cameraPanToken++;
     lastBoardInput = performance.now();
     const scroll = app.querySelector('.board-scroll')!;
     scroll.scrollTo({ left: scroll.scrollLeft, behavior: 'instant' });
@@ -395,11 +412,7 @@ async function handleAction(action: string): Promise<void> {
   }
   if (action === 'zoom') { zoom = !zoom; render(); return; }
   if (['help', 'catalog', 'sound', 'restart', 'result', 'upgrade'].includes(action)) {
-    if (animating) {
-      animationToken++;
-      evaluationQueue.length = 0;
-      finishAnimation();
-    }
+    cameraPanToken++;
     modal = action as typeof modal;
     render();
     focusModal();
@@ -413,14 +426,40 @@ function queueEvaluation(evaluation: Evaluation): void {
   summary.maxChain = Math.max(summary.maxChain, evaluation.maxChain);
   evaluation.events.forEach(event => discovered.add(event.type));
   writeStored('chaos-line.discovery', JSON.stringify([...discovered]));
-  // Every accepted evaluation is shown once; queued reactions use a shorter presentation.
+  // Every accepted evaluation is shown once with the same reading time, even when queued.
   evaluationQueue.push(evaluation);
   if (!animating) void animateEvaluation();
 }
 
+function effectAnimationTimes(): Map<string, number> {
+  const times = new Map<string, number>();
+  for (const animation of document.getAnimations()) {
+    if (!(animation instanceof CSSAnimation) || !(animation.effect instanceof KeyframeEffect)) continue;
+    const target = animation.effect.target;
+    if (target?.classList.contains('token-body')) continue;
+    const owner = target?.closest<SVGElement>('.train-board [data-person], .train-board [data-effect]');
+    if (owner && typeof animation.currentTime === 'number') {
+      times.set(`${owner.dataset.person ?? owner.dataset.effect}:${animation.animationName}`, animation.currentTime);
+    }
+  }
+  return times;
+}
+function restoreEffectAnimationTimes(times: Map<string, number>): void {
+  if (!times.size) return;
+  for (const animation of document.getAnimations()) {
+    if (!(animation instanceof CSSAnimation) || !(animation.effect instanceof KeyframeEffect)) continue;
+    const owner = animation.effect.target?.closest<SVGElement>('.train-board [data-person], .train-board [data-effect]');
+    const time = owner ? times.get(`${owner.dataset.person ?? owner.dataset.effect}:${animation.animationName}`) : undefined;
+    if (typeof time === 'number' && Number.isFinite(time)) animation.currentTime = time;
+  }
+}
+function currentEvents(): Wave['events'] {
+  return activeWave?.events.slice(activeEventOffset, activeEventOffset + 2) ?? [];
+}
 function focusWave(wave: Wave, evaluation: Evaluation): void {
-  if (reducedMotion.matches || document.hidden || pointerActive || performance.now() - lastBoardInput < 650) return;
-  const participant = wave.events[0]?.participants[0] ?? wave.triggered[0] ?? wave.sources[0];
+  const now = performance.now();
+  if (reducedMotion.matches || document.hidden || modal || pointerActive || now - lastBoardInput < 850 || now - cameraLastFocus < 1000) return;
+  const participant = currentEvents()[0]?.participants[0] ?? wave.triggered[0] ?? wave.sources[0];
   const rider = evaluation.passengers.find(person => person.id === participant);
   if (!rider?.cellId) return;
   cameraCell = rider.cellId;
@@ -428,22 +467,46 @@ function focusWave(wave: Wave, evaluation: Evaluation): void {
   const target = app.querySelector<SVGGraphicsElement>(`[data-cell="${cameraCell}"]`);
   const scroll = app.querySelector<HTMLElement>('.board-scroll');
   if (!board || !target || !scroll) return;
-  board.classList.add('camera-focused');
-  board.classList.remove('camera-pulse');
-  // Read after enlarging the board so the camera can center the true new location.
-  const rectangle = target.getBBox();
+  cameraLastFocus = now;
   const bounds = target.getBoundingClientRect();
   const frame = scroll.getBoundingClientRect();
   const cell = cells.find(cell => cell.id === cameraCell)!;
-  scroll.scrollTo({
-    left: (cell.x + cell.width / 2) / 20000 * board.getBoundingClientRect().width - scroll.clientWidth / 2,
-    top: scroll.scrollTop + bounds.top + bounds.height / 2 - frame.top - scroll.clientHeight / 2,
-    behavior: 'smooth',
-  });
-  board.style.transformOrigin = `${(rectangle.x + rectangle.width / 2) / 200}% ${(rectangle.y + rectangle.height / 2) / 39}%`;
-  requestAnimationFrame(() => { if (board.isConnected && !pointerActive) board.classList.add('camera-pulse'); });
+  const startX = scroll.scrollLeft, startY = scroll.scrollTop;
+  const destinationX = Math.max(0, Math.min(scroll.scrollWidth - scroll.clientWidth,
+    (cell.x + cell.width / 2) / 20000 * board.getBoundingClientRect().width - scroll.clientWidth / 2));
+  const destinationY = Math.max(0, Math.min(scroll.scrollHeight - scroll.clientHeight,
+    startY + bounds.top + bounds.height / 2 - frame.top - scroll.clientHeight / 2));
+  // Stay still when the subject is already readable; otherwise ease towards it without changing board size.
+  if (bounds.left < frame.left + 35 || bounds.right > frame.right - 35 || bounds.top < frame.top || bounds.bottom > frame.bottom) {
+    const panToken = ++cameraPanToken;
+    const started = performance.now();
+    const pan = (time: number): void => {
+      if (panToken !== cameraPanToken || !animating || pointerActive || modal) return;
+      const current = app.querySelector<HTMLElement>('.board-scroll');
+      if (!current) return;
+      const progress = Math.min(1, (time - started) / 900);
+      const eased = progress * progress * (3 - 2 * progress);
+      current.scrollLeft = startX + (destinationX - startX) * eased;
+      current.scrollTop = startY + (destinationY - startY) * eased;
+      if (progress < 1) requestAnimationFrame(pan);
+    };
+    requestAnimationFrame(pan);
+  }
+  board.style.transformOrigin = '50% 50%';
+  board.classList.add('camera-pulse');
 }
 
+async function holdPresentation(milliseconds: number, token: number): Promise<boolean> {
+  let remaining = milliseconds;
+  let previous = performance.now();
+  while (remaining > 0 && token === animationToken) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const now = performance.now();
+    if (!document.hidden && !modal && !pointerActive) remaining -= Math.min(100, now - previous);
+    previous = now;
+  }
+  return token === animationToken;
+}
 async function animateEvaluation(): Promise<void> {
   if (animating) return;
   animating = true;
@@ -451,21 +514,21 @@ async function animateEvaluation(): Promise<void> {
   while (evaluationQueue.length && token === animationToken) {
     const evaluation = evaluationQueue.shift()!;
     activeEvaluation = evaluation;
-    const waves = evaluation.waves;
-    const budget = evaluationQueue.length ? 420 : 1400;
-    for (const wave of waves) {
-      while (pointerActive && token === animationToken) {
-        await new Promise(resolve => setTimeout(resolve, 16));
-      }
-      if (token !== animationToken) return;
+    for (const wave of evaluation.waves) {
+      if (!await holdPresentation(1, token)) return;
       activeWave = wave;
-      render();
-      focusWave(wave, evaluation);
-      audio.playWave(wave.index, wave.events.length, wave.events.some(event => event.rare));
-      const duration = reducedMotion.matches ? 40 : wave.events.length
-        ? Math.min(evaluationQueue.length ? 360 : 850, budget / Math.max(1, waves.length) + 400)
-        : Math.min(160, budget / Math.max(1, waves.length));
-      await new Promise(resolve => setTimeout(resolve, duration));
+      // Present no more than two events together so every name and line can be read without scrolling.
+      for (activeEventOffset = 0; activeEventOffset < Math.max(1, wave.events.length); activeEventOffset += 2) {
+        if (token !== animationToken) return;
+        render();
+        focusWave(wave, evaluation);
+        const events = currentEvents();
+        const rare = events.some(event => event.rare);
+        if (activeEventOffset === 0) audio.playWave(wave.index, wave.events.length, rare);
+        else audio.playEvent(rare, activeEventOffset / 2);
+        const duration = events.length ? (rare ? 3500 : 2600) + (events.length > 1 ? 450 : 0) : 420;
+        if (!await holdPresentation(duration, token)) return;
+      }
     }
   }
   if (token === animationToken) finishAnimation();
@@ -475,6 +538,8 @@ function finishAnimation(): void {
   activeWave = null;
   activeEvaluation = null;
   cameraCell = null;
+  cameraPanToken++;
+  activeEventOffset = 0;
   audio.playFinish();
   if (state.finished) {
     const best = Number(readStored('chaos-line.best-score')) || 0;
@@ -492,6 +557,8 @@ function restart(seed: string): void {
   evaluationQueue.length = 0;
   activeEvaluation = null;
   cameraCell = null;
+  cameraPanToken++;
+  activeEventOffset = 0;
   state = createGame(seed.slice(0, 80));
   summary = { events: 0, rare: 0, maxChain: 0 };
   selectedId = state.waiting[0]?.id ?? null;
@@ -510,47 +577,82 @@ function renderUpgrade(): string {
   return `<div class="upgrade-cards">${perkChoices(state.seed, state.station).map(choice => {
     const special = choice.kind === 'special';
     return `<button class="upgrade-card ${special ? 'special-choice rarity-' + choice.rarity : ''}" data-action="perk-${choice.id}">
-      <span class="upgrade-kind">${special ? `特殊駒 · ${choice.rarity}` : '区間バフ'}</span>
+      <span class="upgrade-kind">${special ? `特殊駒 · ${choice.rarity}` : choice.scope === 'global' ? '全体バフ' : '区画バフ'}</span>
       ${special ? `<svg class="upgrade-portrait" viewBox="0 0 64 64" aria-hidden="true"><use href="${import.meta.env.BASE_URL}special-tokens.svg#${choice.skill}"/></svg>` : ''}<strong>${escape(choice.name)}</strong><span>${escape(choice.description)}</span>
     </button>`;
   }).join('')}</div>`;
 }
 
 function renderCutin(): string {
-  if (!activeWave?.events.length || modal) return '';
+  if (!activeWave?.events.length) return '';
   const flavors: Record<string, string> = {
-    N01: '肩が触れるたび、互いの立ち位置が狭くなる。',
-    N03: '扉脇の三人が、同時に身を引こうとした。',
-    N07: '空けてほしい席と、動かない乗客。',
-    N11: '背中の荷物が、後ろの乗客を押している。',
-    N19: '通話の声だけが、車内によく響く。',
-    N28: '画面に夢中の乗客が、降り口を塞いでいる。',
-    N51: '残った半マスに体を寄せ、身動きが取れなくなる。',
-    S01: '車両の両端で、同時に声が上がる。',
-    S02: '四つの降り口が、どこもざわついている。',
-    S03: '背負い荷物も車輪付き荷物も、通路でぶつかる。',
-    S04: '通話と会話と音漏れが、互いの声をかき消す。',
-    S05: '違う事情の乗客たちが、同じ車内で譲れなくなる。',
-    S06: '世代の違う乗客たちが、動くタイミングを合わせられない。',
-    S07: 'あちこちから降車の声が上がり、通路が詰まる。',
-    S08: '静かだった場所へ、不満が一気に伝わった。',
-    S09: '端で始まった反応が、離れた場所まで届いた。',
-    S10: '別々の連鎖が交わり、周囲をまとめて巻き込む。',
-  };
-  const categoryFlavor: Record<string, string> = {
-    '空間・座席': '互いの動きが重なり、身を引く場所がなくなった。',
-    '荷物': '荷物を動かした先にも、別の乗客がいる。',
-    '音・行動': '小さな音が、張り詰めた車内に響き続ける。',
-    '乗降': '降りたい乗客と、動けない乗客が向き合う。',
-    '同行': '同行者を探す動きが、周囲の乗客を巻き込んだ。',
+    N01: '右へ半歩。お隣も右へ半歩。肩だけは離れない。',
+    N02: 'そちらが押すなら、こちらも少々。背中の無言会議。',
+    N03: '三人そろって譲ったつもりが、全員同じ方向へ。',
+    N04: '背もたれだと思ったら、人の座席だった。',
+    N05: 'ひじ掛けのない席で、ひじの境界線争い。',
+    N06: '靴と荷物がぎゅうぎゅう。足の置き場、募集中。',
+    N07: '目が合う。そらす。また合う。席だけ動かない。',
+    N08: '両隣はゆったり。真ん中だけ、息をひそめる。',
+    N09: '端席を選んだのに、逃げ道まで端になった。',
+    N10: 'こくり、こくり。お隣を枕にするには近すぎる。',
+    N11: '本人は通れた。リュックはまだ通っていない。',
+    N12: '手提げがこつん。足元から始まるご挨拶。',
+    N13: '出口は見えている。車輪付きの関所も見えている。',
+    N14: '荷物同士は初対面。持ち主より先にぶつかった。',
+    N15: '座れた安心もつかの間、足元に荷物の壁。',
+    N16: '振り向く本人。遅れて大きく振り回されるリュック。',
+    N17: '右にも荷物、左にも荷物。手ぶらがいちばん窮屈。',
+    N18: '大荷物が二つ。扉前だけ、臨時の荷物置き場。',
+    N19: '「今、電車」。車内のみなさんもご存じです。',
+    N20: 'その曲、隣の人まで聴く予定はなかった。',
+    N21: '同じ行を三度読んだ。会話の続きだけ覚えている。',
+    N22: '画面には夢中。ぶつかった肩には気づかない。',
+    N23: '見たつもりはない。隠す動きは、しっかり見えた。',
+    N24: 'ページを開くたび、お隣の余白がなくなる。',
+    N25: 'いい夢の途中へ、いい匂いが割り込んだ。',
+    N26: '電話の声が上がる。会話も負けずに上がる。',
+    N27: '「降ります」が届かない。イヤホンの向こうは別世界。',
+    N28: '画面の続きは気になる。後ろの「降ります」も気にして。',
+    N29: '降りたい人と、ここで動きたくない人がご対面。',
+    N30: '荷物を引いたら別の荷物へ。出口まであと少し。',
+    N31: '先にどうぞ、の気配はない。二人とも出口しか見ていない。',
+    N32: '席から立った。そこから先が、まだ遠い。',
+    N33: '乗って落ち着いたその場所が、誰かの帰り道。',
+    N34: 'やっと座れた。と思ったら、もう降りる駅。',
+    N35: '別々に来た降車の列が、同じ場所でこんにちは。',
+    N36: '待てども開かない。今日の出口は反対側。',
+    N37: '「みんないる？」の確認は、できれば出口の先で。',
+    N38: 'まだまだ乗る人の特等席が、降りたい人の目の前に。',
+    N39: '友達への一言が、眠る人の頭上を飛び交う。',
+    N40: '仲間の席は確保済み。立っている人の視線が痛い。',
+    N41: '会話は右から左へ。真ん中の人は参加していない。',
+    N42: '「座れてよかったね」。笑顔の奥に少しだけ圧。',
+    N43: '仲間の荷物はひとまとめ。出口の幅もひとまとめ。',
+    N44: '話したい二人と、読みたい二人。隣同士はつらい。',
+    N45: '電話と音楽が背中合わせ。静かな場所はどちら側？',
+    N46: '壁は動かない。荷物も引かない。こちらだけ小さくなる。',
+    N47: '本を避けたら、向こうの本も同じ方向へ。',
+    N48: '手元に夢中の二人。足元だけが先に出会った。',
+    N49: '降りたいので、まずはお隣の夢から起こします。',
+    N50: '降りたい、動かしたくない、画面を見たい。三者三様。',
+    N51: '入れると思った。息を吸う場所までは数えていなかった。',
+    S01: 'あっちで「ちょっと」。こっちでも「ちょっと」。',
+    S02: 'どの出口を選んでも、ひと騒動が待っている。',
+    S03: '背負う、提げる、転がす。本日の荷物、全員集合。',
+    S04: '電話、会話、音楽。車内放送だけが聞こえない。',
+    S05: '五人五様の都合が、ひとつの車内に収まらない。',
+    S06: '若い人も、働き盛りも、年配の人も。今日は譲れない。',
+    S07: '「降ります」「降ります」。声はそろって、足は進まない。',
+    S08: '静かな車内だった。みんなが目を覚ますまでは。',
+    S09: '乗った駅は違っても、不満の行き先は同じだった。',
+    S10: 'あちらのひと騒動へ、こちらのひと騒動が合流。',
   };
   return `<div class="event-cutin" aria-live="polite"><div class="cutin-stack">
-    ${activeWave.events.map(event => {
-      const definition = eventDefinitions.find(entry => entry.id === event.type);
-      const flavor = flavors[event.type] ?? categoryFlavor[definition?.category ?? ''] ??
-        'わずかな接触から、周囲の不満が一斉に表に出る。';
+    ${currentEvents().map(event => {
+      const flavor = flavors[event.type] ?? 'ひとつのため息が、車内をざわつかせた。';
       return `<article class="cutin-metal ${event.rare ? 'rare-cutin' : ''}" data-event="${event.type}">
-        <span class="cutin-tag">${event.rare ? '特殊トラブル' : `${activeWave!.index}連鎖`}</span>
+        <span class="cutin-tag">${event.rare ? '特殊トラブル' : `${activeWave!.index}連鎖`} · ${activeEventOffset + 1}–${Math.min(activeEventOffset + 2, activeWave!.events.length)} / ${activeWave!.events.length}</span>
         <strong>${escape(event.name)}</strong><p>${flavor}</p>
       </article>`;
     }).join('')}
@@ -608,7 +710,8 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('visibilitychange', () => {
   document.documentElement.classList.toggle('page-hidden', document.hidden);
-  if (document.hidden) { audio.stop(); if (animating) { animationToken++; evaluationQueue.length = 0; finishAnimation(); } }
+  if (document.hidden) { cameraPanToken++; audio.stop(); }
+  else if (animating) enableAudio();
 });
 render();
 focusModal();

@@ -3,11 +3,16 @@ const AUDIO_FILES = {
   music: 'night-express.ogg',
   placement: 'place.wav',
   reaction: 'reaction.wav',
+  rise: 'chain-rise.wav',
+  deep: 'chain-deep.wav',
+  burst: 'burst.wav',
+  cutin: 'cutin.wav',
   rare: 'rare.wav',
   finish: 'finish.wav',
 } as const;
 
 type SoundName = keyof typeof AUDIO_FILES;
+const AUDIO_FILE_COUNT = Object.keys(AUDIO_FILES).length;
 interface AudioSettings {
   muted: boolean;
   musicEnabled: boolean;
@@ -48,7 +53,7 @@ export class GameAudio {
   get muted(): boolean { return this.settings.muted; }
   get musicEnabled(): boolean { return this.settings.musicEnabled; }
   get volume(): number { return this.settings.volume; }
-  get ready(): boolean { return this.enabled && this.buffers.size === 5; }
+  get ready(): boolean { return this.enabled && this.buffers.size === AUDIO_FILE_COUNT; }
 
   /** Call from a click or keyboard action to satisfy browser audio permissions. */
   async unlock(): Promise<void> {
@@ -57,7 +62,7 @@ export class GameAudio {
     const context = this.context!;
     await context.resume();
     if (generation !== this.playbackGeneration) return;
-    if (this.buffers.size !== 5) {
+    if (this.buffers.size !== AUDIO_FILE_COUNT) {
       if (!this.loading) {
         this.loading = this.loadBuffers(context).finally(() => { this.loading = null; });
       }
@@ -95,11 +100,21 @@ export class GameAudio {
 
   playWave(depth: number, events: number, rare = false): void {
     const step = Math.max(0, Math.min(8, Math.floor(depth)));
-    const rate = 0.94 + step * 0.035;
-    this.playSample('reaction', 0.42, rate);
-    if (events > 1) this.playSample('reaction', 0.16, rate * 1.25, 0.035);
-    if (rare) this.playSample('rare', 0.34, 1);
-    this.duckMusic(rare ? 0.85 : 0.38);
+    const rate = 0.96 + Math.min(step, 6) * 0.025;
+    // Distinct layered samples make growth audible without endlessly pitching up one hit.
+    this.playSample(step >= 4 ? 'deep' : step >= 2 ? 'rise' : 'reaction', 0.48, rate);
+    if (events > 1) this.playSample('burst', 0.3, 1, 0.055);
+    if (events >= 4) this.playSample('cutin', 0.22, 1.12, 0.17);
+    if (rare) this.playSample('rare', 0.42, 1, 0.035);
+    else if (events === 1) this.playSample('cutin', 0.24, 1, 0.055);
+    this.duckMusic(rare ? 1.5 : events > 1 ? 1.1 : 0.7);
+  }
+
+  /** An accent for subsequent event cards; the first card is included in playWave. */
+  playEvent(rare = false, variation = 0): void {
+    this.playSample(rare ? 'rare' : 'cutin', rare ? 0.38 : 0.34,
+      1 + Math.max(0, Math.min(3, variation)) * 0.025);
+    this.duckMusic(rare ? 1.3 : 0.6);
   }
 
   playFinish(): void {

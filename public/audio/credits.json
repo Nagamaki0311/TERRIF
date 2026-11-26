@@ -6,13 +6,68 @@
   "sourceSampleRate": 22050,
   "sourceBitDepth": 16,
   "music": "Sample-style reed lead, plucked arpeggios, soft string pad, bass, and drums. Original notes and arrangement; circular short-room delays.",
-  "effects": "Original damped modal synthesis of wood and metal bodies with deterministic noise transients.",
+  "effects": "Original layered damped wood and metal resonators, body impacts, rising harmonic blooms, deterministic transients, and short stereo room tails. No external samples.",
   "files": [
     "night-express.ogg",
     "place.wav",
     "reaction.wav",
+    "chain-rise.wav",
+    "chain-deep.wav",
+    "burst.wav",
+    "cutin.wav",
     "rare.wav",
     "finish.wav"
   ],
-  "validation": "PCM source peak 0.82, RMS 0.1441, zero source loop-edge difference. Subjective sound quality still requires listening."
+  "validation": "PCM source peak 0.82, RMS 0.1441, zero source loop-edge difference. Subjective sound quality still requires listening.",
+  "effectsGenerator": "scripts/generate-effects.py; fixed seed 270311; 22050 Hz / stereo / 16-bit PCM",
+  "effectsValidation": [
+    {
+      "file": "place.wav",
+      "seconds": 0.32,
+      "peak": 0.76,
+      "rms": 0.1346
+    },
+    {
+      "file": "reaction.wav",
+      "seconds": 0.9,
+      "peak": 0.76,
+      "rms": 0.0987
+    },
+    {
+      "file": "chain-rise.wav",
+      "seconds": 1.1,
+      "peak": 0.76,
+      "rms": 0.1091
+    },
+    {
+      "file": "chain-deep.wav",
+      "seconds": 1.4,
+      "peak": 0.76,
+      "rms": 0.1075
+    },
+    {
+      "file": "burst.wav",
+      "seconds": 1.25,
+      "peak": 0.76,
+      "rms": 0.1233
+    },
+    {
+      "file": "cutin.wav",
+      "seconds": 0.65,
+      "peak": 0.76,
+      "rms": 0.1238
+    },
+    {
+      "file": "rare.wav",
+      "seconds": 1.9,
+      "peak": 0.76,
+      "rms": 0.1071
+    },
+    {
+      "file": "finish.wav",
+      "seconds": 1.65,
+      "peak": 0.76,
+      "rms": 0.1296
+    }
+  ]
 }

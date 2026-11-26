@@ -1561,7 +1561,7 @@ strong, b, .count, .card-tags, .preview-score {
   .motion-tourist { animation-name: passenger-look; }
   .motion-rest { animation-name: passenger-settle; }
   .token-body.agitated { animation-name: passenger-tense; }
-  .is-flaring .token-reaction { animation: passenger-react .23s ease-out; }
+  .is-flaring .token-reaction { animation: passenger-react .72s cubic-bezier(.2,.7,.3,1) both; }
   .page-hidden .token-body, .page-hidden .token-reaction { animation-play-state: paused; }
   /* The portrait moves inside its fixed 64-unit SVG viewport. */
   @keyframes passenger-breathe { 50% { transform: translateY(-.22px); } }
@@ -1575,7 +1575,12 @@ strong, b, .count, .card-tags, .preview-score {
     20%, 30% { transform: translateX(-.3px); }
     25%, 35% { transform: translateX(.3px); }
   }
-  @keyframes passenger-react { 30% { transform: translateY(-2px); } }
+  @keyframes passenger-react {
+    0%, 100% { transform: scale(1); }
+    18% { transform: scale(1.018,.95); }
+    38% { transform: scale(.985,1.015); }
+    65% { transform: scale(1.006,.99); }
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .token-body, .token-reaction { animation: none !important; }
@@ -1667,20 +1672,21 @@ strong, b, .count, .card-tags, .preview-score {
 .cell.overcrowded .cell-shape { fill: #eee0d4; stroke: #9c4e35; }
 .wave-points { color: #f5e6ac; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (prefers-reduced-motion: no-preference) {
-  .chain-line { stroke-dasharray: 1; animation: propagate-line .19s ease-out both; }
-  .receiver-ring { animation: receive-ring .27s ease-out both; }
-  .event-marker { animation: event-stamp .25s cubic-bezier(.15,.7,.25,1.15) both; }
-  .event-marker.rare { animation-duration: .32s; }
+  .chain-line { stroke-dasharray: 1; animation: propagate-line .48s cubic-bezier(.2,.6,.3,1) .08s both; }
+  .receiver-ring { animation: receive-ring .9s ease-out .12s both; }
+  .event-marker { animation: event-stamp .62s cubic-bezier(.15,.7,.25,1.05) .12s both; }
+  .event-marker.rare { animation-duration: .8s; }
   .wave-points { animation: score-land .2s ease-out both; }
   .is-flaring .token-body { animation-play-state: paused; }
-  .compressed.is-receiving .token-reaction, .crowded.is-receiving .token-reaction { animation: cramped-reaction .26s ease-out; }
+  .compressed.is-receiving .token-reaction, .crowded.is-receiving .token-reaction { animation: cramped-reaction .75s ease-out both; }
   @keyframes propagate-line { from { stroke-dashoffset: 1; opacity: .2; } to { stroke-dashoffset: 0; opacity: .9; } }
   @keyframes receive-ring { from { transform: scale(.8); opacity: 1; } to { transform: scale(1.3); opacity: .15; } }
   @keyframes event-stamp { from { transform: scale(1.8); opacity: 0; } 65% { transform: scale(.9); opacity: 1; } to { transform: scale(1); opacity: 1; } }
   @keyframes score-land { from { transform: translateY(5px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   @keyframes cramped-reaction {
-    35% { transform: translateX(-2px); }
-    70% { transform: translateX(1px); }
+    20% { transform: scale(.96,.97); }
+    45% { transform: scale(1.01,.99); }
+    100% { transform: scale(1); }
   }
 }
 @media (max-width: 760px) {
@@ -1774,8 +1780,8 @@ strong, b, .count, .card-tags, .preview-score {
 .wave-event { max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .impact-rings { animation: trouble-ring .42s ease-out both; }
-  .impact-rays { animation: trouble-rays .35s ease-out both; }
+  .impact-rings { animation: trouble-ring 1.15s ease-out .1s both; }
+  .impact-rays { animation: trouble-rays .85s ease-out .12s both; }
   @keyframes trouble-ring {
     from { transform: scale(.55); opacity: 1; }
     to { transform: scale(1.75); opacity: 0; }
@@ -1799,10 +1805,10 @@ strong, b, .count, .card-tags, .preview-score {
 .run-status small { font-size: 12px; margin-left: 5px; }
 .acquired-perk { display: block; text-align: left; padding: 4px 0; font-size: 12px; color: var(--teal); }
 .board-scroll { overflow: auto; }
-.train-board.camera-pulse { animation: camera-focus .48s cubic-bezier(.15,.7,.2,1) both; }
+.train-board.camera-pulse { animation: camera-focus 1.8s cubic-bezier(.3,0,.2,1) both; }
 @keyframes camera-focus {
   0%, 100% { transform: scale(1); }
-  35% { transform: scale(1.16); }
+  45%, 65% { transform: scale(1.025); }
 }
 .relay-line { stroke: #865bb8; stroke-dasharray: 65 35; }
 .special-passenger .portrait { filter: drop-shadow(0 1px 1px #18313a55); }
@@ -1837,7 +1843,7 @@ strong, b, .count, .card-tags, .preview-score {
 
 /* Event cut-ins are independent of the interactive game surface. */
 .event-cutin { position: fixed; z-index: 22; inset: 0; pointer-events: none; display: flex; justify-content: center; align-items: flex-start; padding-top: clamp(110px, 19vh, 210px); }
-.cutin-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; width: min(760px, calc(100vw - 24px)); max-height: 37vh; overflow: auto; pointer-events: auto; }
+.cutin-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; width: min(760px, calc(100vw - 24px)); max-height: 42dvh; overflow: auto; pointer-events: auto; }
 .cutin-stack > :only-child { grid-column: 1 / -1; }
 .cutin-metal {
   position: relative;
@@ -1876,12 +1882,12 @@ strong, b, .count, .card-tags, .preview-score {
   .upgrade-card { min-height: 90px; padding: 11px 12px; gap: 4px; }
   .upgrade-card > strong { font-size: 18px; }
   .upgrade-card > span:last-child { font-size: 12px; line-height: 1.45; }
-  .cutin-stack { max-height: 33vh; gap: 4px; }
-  .cutin-metal { padding: 9px 10px; }
-  .cutin-metal > strong { font-size: 17px; }
-  .cutin-metal p { font-size: 10px; line-height: 1.45; margin-top: 6px; }
+  .cutin-stack { grid-template-columns: 1fr; max-height: min(42dvh, 340px); gap: 7px; }
+  .cutin-metal { padding: 11px 13px; }
+  .cutin-metal > strong { font-size: 18px; }
+  .cutin-metal p { font-size: 12px; line-height: 1.5; margin-top: 7px; }
   .cutin-tag { font-size: 9px; }
-  .event-cutin { padding-top: 130px; }
+  .event-cutin { padding-top: clamp(92px, 16dvh, 130px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .train-board.camera-pulse, .cutin-metal { animation: none; }
@@ -1900,13 +1906,7 @@ strong, b, .count, .card-tags, .preview-score {
   .special-choice .upgrade-portrait { position: absolute; left: 10px; top: 17px; width: 46px; height: 46px; }
 }
 
-/* A temporary camera framing leaves the player's chosen zoom setting intact. */
-.train-board.camera-focused {
-  width: max(1920px, 100%);
-  min-width: 1920px;
-  flex-shrink: 0;
-}
-.board-scroll:has(.camera-focused) { align-items: flex-start; }
+/* Camera tracking retains the exact board geometry and the player's chosen zoom. */
 .wave-overlay {
   display: flex;
   align-items: center;
@@ -1920,7 +1920,6 @@ strong, b, .count, .card-tags, .preview-score {
 .wave-overlay > strong { font-size: 18px; white-space: nowrap; }
 .wave-overlay > button { margin: 0; min-height: 36px; padding: 4px 9px; font-size: 12px; }
 @media (max-width: 760px) {
-  .train-board.camera-focused { width: 1920px; min-width: 1920px; height: 365px; min-height: 0; }
   .wave-overlay { min-height: 42px; gap: 10px; padding: 4px 6px 4px 12px; }
   .wave-overlay > strong { font-size: 16px; }
   .wave-overlay > button { font-size: 11px; }
@@ -2005,9 +2004,9 @@ input, select { background: #101b2a; color: #f1f7ff; border: 1px solid #6b839c; 
 .cutin-metal strong { text-shadow: 0 2px 0 #05101d, 0 4px 0 #071524, 0 6px 9px #000c; }
 .cutin-metal.rare-cutin { border-color: #ffe6a2; background: linear-gradient(145deg,#8d723e,#352e24 24%,#161f31 70%,#675438); }
 @media (prefers-reduced-motion: no-preference) {
-  .cutin-metal { animation: metal-arrival .24s cubic-bezier(.12,.75,.2,1) both; }
+  .cutin-metal { animation: metal-arrival .46s cubic-bezier(.12,.75,.2,1) both; }
   @keyframes metal-arrival {
-    from { transform: translateX(45px) perspective(700px) rotateY(-9deg); opacity: 0; }
+    from { transform: translateX(24px) perspective(700px) rotateY(-5deg); opacity: 0; }
     to { transform: translateX(0) perspective(700px) rotateY(0); opacity: 1; }
   }
 }

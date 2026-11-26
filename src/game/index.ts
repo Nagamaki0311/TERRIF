@@ -72,7 +72,7 @@ export function choosePerk(state: GameState, id: string): GameState {
   if (state.finished || state.perk) return state;
   const perk = perkChoices(state.seed, state.station).find(offer => offer.id === id);
   if (!perk) return state;
-  const extraMoves = perk.id === "switch" ? 2 : 0;
+  const extraMoves = perk.effect === "switch" ? perk.scope === "global" ? 1 : 2 : 0;
   const special = perk.kind === "special" ? {
     ...state.schedule[state.station][0],
     id: "special-" + state.station,

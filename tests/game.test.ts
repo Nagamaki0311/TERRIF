@@ -323,7 +323,7 @@ test("station perks are seeded, single-pick, and can change the first ignition",
   const { choosePerk, perkChoices, sectorAt } = await import("../src/game/index.ts");
   const seeds = Array.from({ length: 30 }, (_, i) => "perk-" + i);
   const offers = seeds.flatMap(seed => perkChoices(seed, 0));
-  assert.equal(new Set(offers.filter(offer => offer.kind === "buff").map(offer => offer.id)).size, 5);
+  assert.equal(new Set(offers.filter(offer => offer.kind === "buff").map(offer => offer.effect)).size, 5);
   const seed = seeds.find(value => perkChoices(value, 0).some(offer => offer.id === "quiet"))!;
   const game = createGame(seed);
   const choices = perkChoices(seed, 0);
@@ -363,6 +363,9 @@ test("offers always contain one rarity-weighted special and two distinct buffs",
     const offers = perkChoices("rarity-" + i, i % 6);
     assert.equal(offers.filter(offer => offer.kind === "special").length, 1);
     assert.equal(offers.filter(offer => offer.kind === "buff").length, 2);
+    assert.equal(offers[1].scope, "sector");
+    assert.equal(offers[2].scope, "global");
+    assert.equal(offers[2].sector, null);
     assert.equal(new Set(offers.map(offer => offer.id)).size, 3);
     counts[offers[0].rarity!]++;
   }
@@ -374,6 +377,78 @@ test("offers always contain one rarity-weighted special and two distinct buffs",
   assert.equal(acquired.waiting[0].special?.skill, offer.skill);
   assert.equal(acquired.waiting[0].special?.rarity, offer.rarity);
   assert.equal(choosePerk(acquired, offer.id), acquired);
+});
+
+test("regional buffs are stronger while global buffs reach distant passengers", async () => {
+  const { perkChoices, sectorAt } = await import("../src/game/index.ts");
+  for (const effect of ["quiet", "seats", "luggage", "switch"] as const) {
+    const offers = Array.from({ length: 100 }, (_, i) => perkChoices("scope-" + i, 0)).flat();
+    const regional = offers.find(offer => offer.effect === effect && offer.scope === "sector")!;
+    const global = offers.find(offer => offer.effect === effect && offer.scope === "global")!;
+    assert.ok(regional.strength! > global.strength!);
+    const local = cells.find(cell => cell.kind === (effect === "seats" ? "seat" : "standing")
+      && sectorAt(cell.x + cell.width / 2) === regional.sector)!;
+    const remote = cells.find(cell => cell.kind === local.kind
+      && Math.abs(sectorAt(cell.x + cell.width / 2) - regional.sector!) >= 2)!;
+    const initial = state([person("local", local.id, { stress: 35, luggage: effect === "luggage" }),
+      person("remote", remote.id, { stress: 35, luggage: effect === "luggage" })]);
+    const baseline = evaluate(initial).passengers;
+    const focused = evaluate({ ...initial, perk: regional }).passengers;
+    const broad = evaluate({ ...initial, perk: global }).passengers;
+    assert.ok(focused[0].stress > broad[0].stress, effect);
+    assert.equal(focused[1].stress, baseline[1].stress, effect + " must stay local");
+    assert.ok(broad[1].stress > baseline[1].stress, effect + " must reach remote riders");
+    assert.equal(broad[0].stress - baseline[0].stress, broad[1].stress - baseline[1].stress);
+  }
+});
+
+test("global bridge adds a smaller cross-aisle boost throughout the board", async () => {
+  const { perkChoices, sectorAt } = await import("../src/game/index.ts");
+  const offers = Array.from({ length: 100 }, (_, i) => perkChoices("bridge-scope-" + i, 0)).flat();
+  const regional = offers.find(offer => offer.effect === "bridge" && offer.scope === "sector")!;
+  const global = offers.find(offer => offer.effect === "bridge" && offer.scope === "global")!;
+  const target = cells.find(cell => cell.row === 2 && cell.kind === "standing"
+    && sectorAt(cell.x + cell.width / 2) === regional.sector)!;
+  const source = cells.find(cell => cell.row === 1 && cell.kind === "standing" && cell.x === target.x)!;
+  const remoteTarget = cells.find(cell => cell.row === 2 && cell.kind === "standing"
+    && Math.abs(sectorAt(cell.x + cell.width / 2) - regional.sector!) >= 2)!;
+  const remoteSource = cells.find(cell => cell.row === 1 && cell.kind === "standing" && cell.x === remoteTarget.x)!;
+  const initial = state([
+    person("source", source.id, { stress: 100 }), person("target", target.id, { stress: 0 }),
+    person("remote-source", remoteSource.id, { stress: 100 }), person("remote-target", remoteTarget.id, { stress: 0 }),
+  ]);
+  const baseline = evaluate(initial).passengers;
+  const focused = evaluate({ ...initial, perk: regional }).passengers;
+  const broad = evaluate({ ...initial, perk: global }).passengers;
+  assert.equal(focused[1].stress - baseline[1].stress, 25);
+  assert.equal(focused[3].stress, baseline[3].stress);
+  assert.equal(broad[1].stress - baseline[1].stress, 8);
+  assert.equal(broad[3].stress - baseline[3].stress, 8);
+});
+
+test("global repositioning grants one move once and creates no sector objective", async () => {
+  const { perkChoices, choosePerk } = await import("../src/game/index.ts");
+  const seed = Array.from({ length: 100 }, (_, i) => "global-moves-" + i)
+    .find(seed => perkChoices(seed, 0).some(offer => offer.id === "switch-global"))!;
+  const initial = createGame(seed);
+  const selected = choosePerk(initial, "switch-global");
+  assert.equal(selected.movesLeft, initial.movesLeft + 1);
+  assert.equal(selected.objective, null);
+  assert.equal(choosePerk(selected, "switch-global"), selected);
+});
+
+test("a global buff preserves realtime locality instead of ticking every remote rider", async () => {
+  const { perkChoices } = await import("../src/game/index.ts");
+  const { evaluatePlacement } = await import("../src/game/evaluation.ts");
+  const global = Array.from({ length: 100 }, (_, i) => perkChoices("global-live-" + i, 0)).flat()
+    .find(offer => offer.id === "quiet-global")!;
+  const fixture = { ...state([
+    person("placed", "r1-b0-0", { stress: 10 }),
+    person("remote", "r1-b4-1", { stress: 40 }),
+  ]), perk: global };
+  const evaluated = evaluatePlacement(fixture, "placed");
+  assert.equal(evaluated.passengers[0].stress, 20);
+  assert.equal(evaluated.passengers[1].stress, 40);
 });
 
 test("placement resolves immediately, leaves remote stress untouched, and departure never rescores", () => {
