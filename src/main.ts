@@ -26,7 +26,10 @@ const evaluationQueue: Evaluation[] = [];
 const presented = new WeakSet<Evaluation>();
 let cameraCell: string | null = null;
 let cameraPanToken = 0;
-let cameraLastFocus = 0;
+let cameraFocusToken = 0;
+let cameraHeldUntil = 0;
+const fullCamera = { x: 0, y: 0, width: 20000, height: 3900 };
+let cameraView = { ...fullCamera };
 let activeEventOffset = 0;
 let renderedWave: Wave | null = null;
 const cutinHost = document.createElement('div');
@@ -131,6 +134,7 @@ function render(): void {
   </main>`;
   document.querySelector('.board-scroll')!.scrollLeft = scrollLeft;
   document.querySelector('.board-scroll')!.scrollTop = scrollTop;
+  if (cameraCell) document.querySelector<SVGElement>('.train-board')!.dataset.cameraCell = cameraCell;
   restoreEffectAnimationTimes(animationTimes);
   renderedWave = activeWave;
   // Keep cut-ins outside the replaced board DOM so selecting the next piece cannot restart them.
@@ -187,7 +191,7 @@ function renderBoard(): string {
       return `<path data-effect="link-${id}-${receiverId}" class="chain-line ${relay && !adjacent(from.id, to.id) ? 'relay-line' : ''}" pathLength="1" d="M${from.x + from.width / 2},${rowY(from.row) + 280}L${to.x + to.width / 2},${rowY(to.row) + 280}"/>`;
     });
   }).join('') : '';
-  return `<svg class="train-board ${zoom ? 'zoomed' : ''} ${animating && cameraCell && !reducedMotion.matches ? 'camera-focused' : ''}" viewBox="0 0 20000 3900" role="group" aria-label="北座席、北通路、南通路、南座席の4層。外側の扉際は3人まで。"><defs><linearGradient id="metal-seat" x2="0" y2="1"><stop stop-color="#bdf5ff"/><stop offset=".2" stop-color="#3799c0"/><stop offset=".52" stop-color="#205576"/><stop offset=".85" stop-color="#49b0d1"/><stop offset="1" stop-color="#12324e"/></linearGradient><linearGradient id="metal-priority" x2="0" y2="1"><stop stop-color="#ffecc2"/><stop offset=".3" stop-color="#d6a14c"/><stop offset=".75" stop-color="#866028"/><stop offset="1" stop-color="#483421"/></linearGradient><pattern id="metal-floor" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="#1b2939"/><path d="M0 60H120M60 0V120" stroke="#304154" stroke-width="8"/></pattern><pattern id="luggage-hatch" width="90" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="90" height="90" fill="#d9e2ed"/><path d="M0 0V90" stroke="#7890a9" stroke-width="24"/></pattern></defs><rect class="train-outline" x="300" y="250" width="19400" height="3300" rx="250"/><path class="center-line" d="M1000 1900H19000"/>
+  return `<svg class="train-board ${zoom ? 'zoomed' : ''}" viewBox="${cameraView.x} ${cameraView.y} ${cameraView.width} ${cameraView.height}" role="group" aria-label="北座席、北通路、南通路、南座席の4層。外側の扉際は3人まで。"><defs><linearGradient id="metal-seat" x2="0" y2="1"><stop stop-color="#bdf5ff"/><stop offset=".2" stop-color="#3799c0"/><stop offset=".52" stop-color="#205576"/><stop offset=".85" stop-color="#49b0d1"/><stop offset="1" stop-color="#12324e"/></linearGradient><linearGradient id="metal-priority" x2="0" y2="1"><stop stop-color="#ffecc2"/><stop offset=".3" stop-color="#d6a14c"/><stop offset=".75" stop-color="#866028"/><stop offset="1" stop-color="#483421"/></linearGradient><pattern id="metal-floor" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="#1b2939"/><path d="M0 60H120M60 0V120" stroke="#304154" stroke-width="8"/></pattern><pattern id="luggage-hatch" width="90" height="90" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="90" height="90" fill="#d9e2ed"/><path d="M0 0V90" stroke="#7890a9" stroke-width="24"/></pattern></defs><rect class="train-outline" x="300" y="250" width="19400" height="3300" rx="250"/><path class="center-line" d="M1000 1900H19000"/>
     <text class="row-label" x="820" y="950">座</text><text class="row-label" x="820" y="1600">立</text><text class="row-label" x="820" y="2250">立</text><text class="row-label" x="820" y="2900">座</text>
     ${[2570, 7090, 11610, 16130].map((x, index) => `<path class="closed-door" d="M${x} 340H${x + 1300}M${x + 650} 320V470"/><text class="door-caption" x="${x + 650}" y="215">閉鎖</text><path class="open-door" d="M${x} 3400H${x + 1300}"/><text class="door-caption south" x="${x + 650}" y="3780">↓ 乗降口 ${index + 1}</text>`).join('')}
     ${boardCells}${links}${renderEventMarkers(effectPeople)}${renderBoarding(people)}</svg>`;
@@ -282,7 +286,6 @@ function renderCell(cell: Cell, people: Passenger[]): string {
 function bindEvents(): void {
   app.querySelector('.board-scroll')?.addEventListener('pointerdown', () => {
     pointerActive = true;
-    cameraPanToken++;
     lastBoardInput = performance.now();
     const scroll = app.querySelector('.board-scroll')!;
     scroll.scrollTo({ left: scroll.scrollLeft, behavior: 'instant' });
@@ -383,12 +386,13 @@ async function handleAction(action: string): Promise<void> {
   }
   if (action.startsWith('jump-')) {
     const door = Number(action.slice(5));
+    resetCamera();
     zoom = true;
     render();
     centerBoardAt([3220, 7740, 12260, 16780][door]);
     return;
   }
-  if (action === 'skip') { animationToken++; evaluationQueue.length = 0; finishAnimation(); return; }
+  if (action === 'skip') { animationToken++; evaluationQueue.length = 0; finishAnimation(true); return; }
   if (action === 'close') { closeModal(); return; }
   if (action === 'depart') {
     if (state.waiting.length || animating || state.finished) return;
@@ -410,9 +414,8 @@ async function handleAction(action: string): Promise<void> {
       if (!state.passengers.some(person => person.id === id)) boarding.delete(id);
     } selectedId = state.waiting[0]?.id ?? null; render(); return;
   }
-  if (action === 'zoom') { zoom = !zoom; render(); return; }
+  if (action === 'zoom') { resetCamera(); zoom = !zoom; render(); return; }
   if (['help', 'catalog', 'sound', 'restart', 'result', 'upgrade'].includes(action)) {
-    cameraPanToken++;
     modal = action as typeof modal;
     render();
     focusModal();
@@ -456,44 +459,110 @@ function restoreEffectAnimationTimes(times: Map<string, number>): void {
 function currentEvents(): Wave['events'] {
   return activeWave?.events.slice(activeEventOffset, activeEventOffset + 2) ?? [];
 }
+function applyCamera(): void {
+  app.querySelector('.train-board')?.setAttribute('viewBox', `${cameraView.x} ${cameraView.y} ${cameraView.width} ${cameraView.height}`);
+}
+function resetCamera(): void {
+  cameraPanToken++;
+  cameraFocusToken++;
+  cameraCell = null;
+  cameraHeldUntil = 0;
+  cameraView = { ...fullCamera };
+  applyCamera();
+}
+function moveCamera(destination: typeof cameraView, milliseconds: number, scrollTo?: { left: number; top: number }, returning = false): void {
+  const panToken = ++cameraPanToken;
+  let from = { ...cameraView };
+  const scroll = app.querySelector<HTMLElement>('.board-scroll');
+  let fromLeft = scroll?.scrollLeft ?? 0, fromTop = scroll?.scrollTop ?? 0;
+  let remaining = milliseconds, elapsed = 0, previous = performance.now();
+  let paused = false;
+  const step = (now: number): void => {
+    if (panToken !== cameraPanToken) return;
+    let delta = Math.min(50, now - previous);
+    previous = now;
+    // Menus and pointer interaction pause a shot; explicit zoom/skip/restart still cancel it.
+    // Returning to the normal board can continue behind the results dialog.
+    if (document.hidden || (!returning && modal) || pointerActive) {
+      paused = true;
+      if (!returning) cameraHeldUntil += delta;
+      requestAnimationFrame(step);
+      return;
+    }
+    if (paused) {
+      remaining = Math.max(1, remaining - elapsed);
+      elapsed = 0;
+      from = { ...cameraView };
+      const current = app.querySelector<HTMLElement>('.board-scroll');
+      fromLeft = current?.scrollLeft ?? fromLeft;
+      fromTop = current?.scrollTop ?? fromTop;
+      paused = false;
+      delta = 0;
+    }
+    elapsed += delta;
+    const progress = Math.min(1, elapsed / remaining);
+    const eased = progress * progress * (3 - 2 * progress);
+    cameraView = {
+      x: from.x + (destination.x - from.x) * eased,
+      y: from.y + (destination.y - from.y) * eased,
+      width: from.width + (destination.width - from.width) * eased,
+      height: from.height + (destination.height - from.height) * eased,
+    };
+    applyCamera();
+    if (scrollTo) {
+      const current = app.querySelector<HTMLElement>('.board-scroll');
+      if (current) {
+        current.scrollLeft = fromLeft + (scrollTo.left - fromLeft) * eased;
+        current.scrollTop = fromTop + (scrollTo.top - fromTop) * eased;
+      }
+    }
+    if (progress < 1) requestAnimationFrame(step);
+    else if (!returning) cameraHeldUntil = Math.max(cameraHeldUntil, now + 2200);
+  };
+  requestAnimationFrame(step);
+}
 function focusWave(wave: Wave, evaluation: Evaluation): void {
-  const now = performance.now();
-  if (reducedMotion.matches || document.hidden || modal || pointerActive || now - lastBoardInput < 850 || now - cameraLastFocus < 1000) return;
+  if (reducedMotion.matches || (!wave.events.length && cameraCell)) return;
+  const focusToken = ++cameraFocusToken;
+  const eventOffset = activeEventOffset;
   const participant = currentEvents()[0]?.participants[0] ?? wave.triggered[0] ?? wave.sources[0];
   const rider = evaluation.passengers.find(person => person.id === participant);
   if (!rider?.cellId) return;
-  cameraCell = rider.cellId;
-  const board = app.querySelector<SVGElement>('.train-board');
-  const target = app.querySelector<SVGGraphicsElement>(`[data-cell="${cameraCell}"]`);
-  const scroll = app.querySelector<HTMLElement>('.board-scroll');
-  if (!board || !target || !scroll) return;
-  cameraLastFocus = now;
-  const bounds = target.getBoundingClientRect();
-  const frame = scroll.getBoundingClientRect();
-  const cell = cells.find(cell => cell.id === cameraCell)!;
-  const startX = scroll.scrollLeft, startY = scroll.scrollTop;
-  const destinationX = Math.max(0, Math.min(scroll.scrollWidth - scroll.clientWidth,
-    (cell.x + cell.width / 2) / 20000 * board.getBoundingClientRect().width - scroll.clientWidth / 2));
-  const destinationY = Math.max(0, Math.min(scroll.scrollHeight - scroll.clientHeight,
-    startY + bounds.top + bounds.height / 2 - frame.top - scroll.clientHeight / 2));
-  // Stay still when the subject is already readable; otherwise ease towards it without changing board size.
-  if (bounds.left < frame.left + 35 || bounds.right > frame.right - 35 || bounds.top < frame.top || bounds.bottom > frame.bottom) {
-    const panToken = ++cameraPanToken;
-    const started = performance.now();
-    const pan = (time: number): void => {
-      if (panToken !== cameraPanToken || !animating || pointerActive || modal) return;
-      const current = app.querySelector<HTMLElement>('.board-scroll');
-      if (!current) return;
-      const progress = Math.min(1, (time - started) / 900);
-      const eased = progress * progress * (3 - 2 * progress);
-      current.scrollLeft = startX + (destinationX - startX) * eased;
-      current.scrollTop = startY + (destinationY - startY) * eased;
-      if (progress < 1) requestAnimationFrame(pan);
-    };
-    requestAnimationFrame(pan);
-  }
-  board.style.transformOrigin = '50% 50%';
-  board.classList.add('camera-pulse');
+  const attempt = (): void => {
+    if (focusToken !== cameraFocusToken || activeWave !== wave || activeEventOffset !== eventOffset || !animating || reducedMotion.matches) return;
+    if (document.hidden || modal || pointerActive || performance.now() - lastBoardInput < 700) {
+      window.setTimeout(attempt, 100);
+      return;
+    }
+    const board = app.querySelector<SVGGraphicsElement>('.train-board');
+    // A shared cell can contain several riders; focus the actual reacting portrait.
+    const actor = app.querySelector<SVGGraphicsElement>(`.train-board .person[data-person="${participant}"]`);
+    const target = actor?.querySelector<SVGSVGElement>('.token-reaction > svg');
+    const scroll = app.querySelector<HTMLElement>('.board-scroll');
+    if (!board || !actor || !target || !scroll) return;
+    if (boarding.has(participant) || actor.getAttribute('visibility') === 'hidden') {
+      window.setTimeout(attempt, 100);
+      return;
+    }
+    // These placement coordinates are in train space; nested SVG getBBox() can report local icon coordinates.
+    const widthInTrain = target.width.baseVal.value, heightInTrain = target.height.baseVal.value;
+    const x = target.x.baseVal.value + widthInTrain / 2;
+    const y = target.y.baseVal.value + heightInTrain / 2;
+    if (![x, y, widthInTrain, heightInTrain].every(Number.isFinite) || widthInTrain <= 0 || heightInTrain <= 0) return;
+    const boardBounds = board.getBoundingClientRect(), frame = scroll.getBoundingClientRect();
+    const left = Math.max(0, Math.min(scroll.scrollWidth - scroll.clientWidth, x / 20000 * boardBounds.width - scroll.clientWidth / 2));
+    const top = Math.max(0, Math.min(scroll.scrollHeight - scroll.clientHeight, y / 3900 * boardBounds.height - scroll.clientHeight / 2));
+    const scale = window.matchMedia('(max-width: 760px)').matches ? 1.4 : 3;
+    const width = 20000 / scale, height = 3900 / scale;
+    // Off-carriage framing is intentional: edge riders deserve the same centered close-up.
+    const visibleX = (frame.left + scroll.clientWidth / 2 - boardBounds.left + left - scroll.scrollLeft) / boardBounds.width;
+    const visibleY = (frame.top + scroll.clientHeight / 2 - boardBounds.top + top - scroll.scrollTop) / boardBounds.height;
+    cameraCell = rider.cellId;
+    cameraHeldUntil = performance.now() + 3300;
+    board.dataset.cameraPerson = participant;
+    moveCamera({ x: x - width * visibleX, y: y - height * visibleY, width, height }, 1100, { left, top });
+  };
+  attempt();
 }
 
 async function holdPresentation(milliseconds: number, token: number): Promise<boolean> {
@@ -526,19 +595,24 @@ async function animateEvaluation(): Promise<void> {
         const rare = events.some(event => event.rare);
         if (activeEventOffset === 0) audio.playWave(wave.index, wave.events.length, rare);
         else audio.playEvent(rare, activeEventOffset / 2);
-        const duration = events.length ? (rare ? 3500 : 2600) + (events.length > 1 ? 450 : 0) : 420;
+        const mobile = window.matchMedia('(max-width: 760px)').matches;
+        const duration = events.length ? (rare ? (mobile ? 3800 : 4800) : (mobile ? 3000 : 4200)) + (events.length > 1 ? 450 : 0) : 420;
         if (!await holdPresentation(duration, token)) return;
       }
     }
   }
+  if (!await holdPresentation(Math.max(0, cameraHeldUntil - performance.now()), token)) return;
   if (token === animationToken) finishAnimation();
 }
-function finishAnimation(): void {
+function finishAnimation(immediate = false): void {
   animating = false;
   activeWave = null;
   activeEvaluation = null;
   cameraCell = null;
-  cameraPanToken++;
+  cameraFocusToken++;
+  cameraHeldUntil = 0;
+  if (immediate || reducedMotion.matches) resetCamera();
+  else moveCamera({ ...fullCamera }, 900, undefined, true);
   activeEventOffset = 0;
   audio.playFinish();
   if (state.finished) {
@@ -556,8 +630,7 @@ function restart(seed: string): void {
   boarding.clear();
   evaluationQueue.length = 0;
   activeEvaluation = null;
-  cameraCell = null;
-  cameraPanToken++;
+  resetCamera();
   activeEventOffset = 0;
   state = createGame(seed.slice(0, 80));
   summary = { events: 0, rare: 0, maxChain: 0 };
@@ -710,7 +783,7 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('visibilitychange', () => {
   document.documentElement.classList.toggle('page-hidden', document.hidden);
-  if (document.hidden) { cameraPanToken++; audio.stop(); }
+  if (document.hidden) audio.stop();
   else if (animating) enableAudio();
 });
 render();
