@@ -499,8 +499,6 @@ export function selectNormal(
   candidates: TroubleEvent[],
   paid: Set<string>,
   used: Set<string>,
-  counts: Map<string, number>,
-  remaining: number,
 ): TroubleEvent[] {
   const selected: TroubleEvent[] = [];
   candidates.sort(
@@ -510,16 +508,13 @@ export function selectNormal(
       a.id.localeCompare(b.id),
   );
   for (const event of candidates) {
-    if (selected.length >= remaining) break;
     if (
       paid.has(event.id) ||
-      (counts.get(event.type) ?? 0) >= 2 ||
       event.participants.some((id) => used.has(id))
     )
       continue;
     selected.push(event);
     paid.add(event.id);
-    counts.set(event.type, (counts.get(event.type) ?? 0) + 1);
     event.participants.forEach((id) => used.add(id));
   }
   return selected;

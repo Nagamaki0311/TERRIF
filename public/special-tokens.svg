@@ -26,4 +26,23 @@
     <path d="M39 45H58V59H39Z" fill="#ddba72" stroke="#163b3a" stroke-width="2"/>
     <path d="M41 47 49 53 56 47" fill="none" stroke="#163b3a" stroke-width="2"/>
   </symbol>
+  <symbol id="gather" viewBox="0 0 64 64">
+    <path d="M7 60V43L19 32H35L49 43V60Z" fill="#3987aa" stroke="#173348" stroke-width="3"/>
+    <path d="M20 34 27 44 34 34" fill="#dceffa"/>
+    <path d="M16 13Q16 5 28 5T40 13V25Q38 35 28 35T16 25Z" fill="#dfd9c5" stroke="#173348" stroke-width="3"/>
+    <path d="M14 16V10L21 4H34L41 11V17L33 13 27 17 22 12Z" fill="#243f58"/>
+    <path d="M20 22H24M31 22H35M23 28Q28 32 33 27" fill="none" stroke="#173348" stroke-width="2.5"/>
+    <path d="M43 5H58Q61 5 61 9V21Q61 25 57 25H49L42 31V25Q39 25 39 21V9Q39 5 43 5Z" fill="#e1f6ff" stroke="#173348" stroke-width="3"/>
+    <path d="M44 15H47M50 15H53M56 15H58" stroke="#173348" stroke-width="2.5"/>
+  </symbol>
+  <symbol id="snack" viewBox="0 0 64 64">
+    <path d="M7 60V43L22 32H42L57 43V60Z" fill="#b66642" stroke="#4b2d2a" stroke-width="3"/>
+    <path d="M24 34 32 44 40 34" fill="#fae6bf"/>
+    <path d="M19 13Q19 5 32 5T45 13V25Q42 35 32 35T19 25Z" fill="#f1d3b3" stroke="#4b2d2a" stroke-width="3"/>
+    <path d="M17 17 18 9 25 4 32 7 39 4 46 10 47 17 37 13 27 17Z" fill="#63412f"/>
+    <path d="M23 22H28M36 22H41M27 28Q32 32 37 28" fill="none" stroke="#4b2d2a" stroke-width="2.5"/>
+    <path d="M12 44 18 37H47L54 44V59H12Z" fill="#edb85f" stroke="#4b2d2a" stroke-width="3"/>
+    <path d="M13 44H53M32 45V58" stroke="#4b2d2a" stroke-width="2.5"/>
+    <path d="M18 48H27V54H18ZM37 48H47V54H37Z" fill="#fff0cd"/>
+  </symbol>
 </svg>

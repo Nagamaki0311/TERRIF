@@ -1,9 +1,10 @@
-import { capacity, cellById, cells } from "./board.ts";
+import { adjacent, capacity, cellById, cells } from "./board.ts";
 import { perkChoices, troubleSector } from "./perks.ts";
 import { evaluate, evaluatePlacement } from "./evaluation.ts";
 import { generateSchedule, createInitialPassengers, initialPassengerCount, seededRandom } from "./generation.ts";
 import { allocatePassenger, hasLegalPlacement, normalizeBodySpace } from "./occupancy.ts";
-import type { Evaluation, GameState, Snapshot } from "./types.ts";
+import { eventDefinitions } from "./catalog.ts";
+import type { Evaluation, GameState, Passenger, Snapshot, TroubleEvent } from "./types.ts";
 
 export {
   cells,
@@ -16,6 +17,7 @@ export {
 } from "./board.ts";
 export { eventDefinitions } from "./catalog.ts";
 export { evaluate } from "./evaluation.ts";
+export { stationProfile } from "./generation.ts";
 export { getCellUsage, getSpaceCapacity, luggageCandidates, allocatePassenger } from "./occupancy.ts";
 export type * from "./types.ts";
 
@@ -24,6 +26,9 @@ export function createGame(seed: string): GameState {
   return {
     seed,
     objective: null,
+    buffs: [],
+    eventLedger: [],
+    maxChain: 0,
     station: 0,
     passengers: createInitialPassengers(seed, schedule[0]),
     waiting: schedule[0].slice(initialPassengerCount(seed)).map((person) => ({ ...person })),
@@ -36,6 +41,27 @@ export function createGame(seed: string): GameState {
     lastEvaluation: null,
     finished: null,
   };
+}
+
+export function summarizeChaos(state: GameState) {
+  const ledger = state.eventLedger;
+  const rare = ledger.filter(event => event.rare).length;
+  const total = ledger.length;
+  const types = new Set(ledger.map(event => event.type)).size;
+  const sectors = new Set(ledger.map(event => event.sector).filter(sector => sector !== undefined && sector >= 0 && sector < 4)).size;
+  const categories = new Map<string, number>();
+  for (const event of ledger) {
+    const category = eventDefinitions.find(definition => definition.id === event.type)?.category;
+    if (category) categories.set(category, (categories.get(category) ?? 0) + 1);
+  }
+  const mainCategory = [...categories].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+  // Breadth and variety are required: repeated trouble in one corner cannot reach the top stages.
+  const stage = types >= 12 && sectors === 4 && total >= 20 ? 4
+    : types >= 8 && sectors >= 3 && total >= 12 ? 3
+    : types >= 4 && sectors >= 2 && total >= 6 ? 2
+    : total > 0 ? 1 : 0;
+  return { total, events: total - rare, rare, types, sectors, maxChain: state.maxChain,
+    mainCategory, stage, label: ["平穏", "ざわつき", "混乱", "大混乱", "カオス"][stage] };
 }
 
 function snapshot(state: GameState): Snapshot {
@@ -70,7 +96,7 @@ export { perkChoices, sectorAt } from "./perks.ts";
 
 export function choosePerk(state: GameState, id: string): GameState {
   if (state.finished || state.perk) return state;
-  const perk = perkChoices(state.seed, state.station).find(offer => offer.id === id);
+  const perk = perkChoices(state.seed, state.station, state.buffs).find(offer => offer.id === id);
   if (!perk) return state;
   const extraMoves = perk.effect === "switch" ? perk.scope === "global" ? 1 : 2 : 0;
   const special = perk.kind === "special" ? {
@@ -78,8 +104,9 @@ export function choosePerk(state: GameState, id: string): GameState {
     id: "special-" + state.station,
     species: "客人" as const,
     age: 40, sensitivity: 3, luggage: false, belongings: "none" as const,
-    group: null, attention: "aware" as const, audio: "quiet" as const,
-    activity: perk.skill === "bridge" ? "none" as const : "talk" as const,
+    group: perk.skill === "gather" ? "special-group-" + state.station : null,
+    attention: "aware" as const, audio: "quiet" as const,
+    activity: perk.skill === "snack" ? "food" as const : perk.skill === "bridge" ? "none" as const : "talk" as const,
     posture: perk.skill === "bridge" ? "lean" as const : "normal" as const,
     cellId: null, luggageCellId: null, bodySpace: 1 as const,
     stress: perk.rarity === "SSS" ? 76 : perk.rarity === "SS" ? 70 : 64,
@@ -88,6 +115,7 @@ export function choosePerk(state: GameState, id: string): GameState {
   } : null;
   return {
     ...state, perk, objective: perk.sector,
+    buffs: perk.kind === "buff" ? [...state.buffs, perk] : state.buffs,
     waiting: special ? [special, ...state.waiting] : state.waiting,
     movesLeft: state.movesLeft + extraMoves,
     history: state.history.map(entry => ({ ...entry, movesLeft: entry.movesLeft + extraMoves })),
@@ -122,6 +150,56 @@ export function routeBonuses(result: Evaluation, objective: number | null) {
   };
 }
 
+function afterTrouble(passengers: Passenger[], events: TroubleEvent[]): Passenger[] {
+  const categories = new Map<string, Set<string>>();
+  for (const event of events) {
+    const category = eventDefinitions.find(definition => definition.id === event.type)?.category;
+    if (!category || category === "特殊") continue;
+    for (const id of event.participants) {
+      if (!categories.has(id)) categories.set(id, new Set());
+      categories.get(id)!.add(category);
+    }
+  }
+  return passengers.map(person => {
+    const affected = categories.get(person.id);
+    if (!affected) return person;
+    const next = { ...person };
+    const reactions: string[] = [];
+    if (next.attention === "asleep") {
+      next.attention = "aware";
+      reactions.push("目を覚ました");
+    }
+    let screenFocus = false;
+    if (affected.has("行動・音")) {
+      if (next.audio === "leak" || next.activity === "call") {
+        reactions.push(next.activity === "call" ? "通話を切って画面に集中" : "音を止めて画面に集中");
+        next.audio = "quiet";
+        next.activity = "screen";
+        next.attention = "absorbed";
+        screenFocus = true;
+      } else if (next.activity === "talk") {
+        reactions.push("会話が止まった");
+        next.activity = "none";
+      }
+    }
+    if (!screenFocus && next.attention === "absorbed") {
+      next.attention = "aware";
+      reactions.push("顔を上げた");
+    }
+    if ((affected.has("空間・座席") || affected.has("荷物") || affected.has("乗降")) && next.posture !== "normal") {
+      next.posture = "normal";
+      reactions.push("姿勢を直した");
+    }
+    if (affected.has("集団・複合") && next.activity === "talk") {
+      next.activity = "none";
+      reactions.push("会話が止まった");
+    }
+    if (!reactions.length) return person;
+    next.lastReaction = reactions.join("・");
+    return next;
+  });
+}
+
 function commit(
   state: GameState,
   result: Evaluation,
@@ -138,10 +216,13 @@ function commit(
     objectiveBonus: !state.objectiveFulfilled && state.objective !== null && currentSectors.has(state.objective) ? 400 : 0,
   };
   const score = result.score + bonuses.routeBonus + bonuses.objectiveBonus;
+  const events = result.events.map(event => ({ ...event, station: state.station }));
   return {
     ...state,
-    passengers: result.passengers,
-    stationEvents: [...priorEvents, ...result.events],
+    passengers: afterTrouble(result.passengers, events),
+    stationEvents: [...priorEvents, ...events],
+    eventLedger: [...state.eventLedger, ...events],
+    maxChain: Math.max(state.maxChain, result.maxChain),
     stationSectors: [...allSectors],
     objectiveFulfilled: state.objectiveFulfilled || bonuses.objectiveBonus > 0,
     score: state.score + score,
@@ -171,6 +252,23 @@ function finishIfBlocked(state: GameState): GameState {
   return movable ? state : { ...state, finished: "no-space" };
 }
 
+function applyBoardingSkill(state: GameState, passengerId: string): GameState {
+  const rider = state.passengers.find(person => person.id === passengerId)!;
+  const skill = rider.special?.skill;
+  if (skill !== "gather" && skill !== "snack") return state;
+  const count = rider.special!.rarity === "SSS" ? 3 : rider.special!.rarity === "SS" ? 2 : 1;
+  const invited = new Set(state.passengers.filter(person => person.id !== rider.id && !person.special
+    && adjacent(person.cellId, rider.cellId)
+    && (skill === "gather" ? person.group === null
+      : person.attention !== "asleep" && ["none", "read", "screen"].includes(person.activity)))
+    .slice(0, count).map(person => person.id));
+  return { ...state, passengers: state.passengers.map(person => invited.has(person.id) ? {
+    ...person, attention: "aware", activity: skill === "gather" ? "talk" : "food",
+    group: skill === "gather" ? rider.group : person.group,
+    lastReaction: skill === "gather" ? "話の輪に加わった" : "おやつを受け取った",
+  } : person) };
+}
+
 export function place(
   state: GameState,
   passengerId: string,
@@ -191,7 +289,8 @@ export function place(
     history: [...state.history, snapshot(state)],
     lastEvaluation: null,
   };
-  return finishIfBlocked(commit(next, evaluatePlacement(next, passengerId), null));
+  const boarded = applyBoardingSkill(next, passengerId);
+  return finishIfBlocked(commit(boarded, evaluatePlacement(boarded, passengerId), null));
 }
 
 export function move(
@@ -275,7 +374,8 @@ export function depart(state: GameState): GameState {
     objectiveFulfilled: false,
     lastEvaluation: null,
     perk: undefined,
-    movesLeft: committed.objectiveFulfilled ? 3 : 2,
+    movesLeft: (committed.objectiveFulfilled ? 3 : 2) + committed.buffs
+      .filter(buff => buff.effect === "switch").reduce((sum, buff) => sum + (buff.scope === "global" ? 1 : 2), 0),
     finished: null,
   });
 }

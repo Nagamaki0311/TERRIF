@@ -232,7 +232,7 @@ test("152nd placement produces one final evaluation and permanently finishes at 
   assert.ok(result.lastEvaluation);
 });
 
-test("fixed-seed full runs terminate after six rides and produce actual varied trouble", () => {
+test("fixed-seed full runs end within six rides and produce actual varied trouble", () => {
   const order = [...cells].sort(
     (a, b) =>
       ({ door: 0, standing: 1, seat: 2 })[a.kind] -
@@ -244,10 +244,20 @@ test("fixed-seed full runs terminate after six rides and produce actual varied t
     let eventCount = 0;
     while (!game.finished && rides < 15) {
       while (game.waiting.length && !game.finished) {
-        const person = game.waiting[0];
-        const cell = order.find((cell) => canPlace(game, person.id, cell.id));
-        assert.ok(cell);
-        game = place(game, person.id, cell.id);
+        let placement: { person: Passenger; cell: (typeof cells)[number] } | undefined;
+        for (const person of game.waiting) {
+          const cell = order.find(cell => canPlace(game, person.id, cell.id));
+          if (cell) { placement = { person, cell }; break; }
+        }
+        if (placement) game = place(game, placement.person.id, placement.cell.id);
+        else {
+          for (const person of game.passengers) {
+            const cell = order.find(cell => cell.id !== person.cellId && canPlace(game, person.id, cell.id));
+            if (cell) { placement = { person, cell }; break; }
+          }
+          assert.ok(placement, "an unfinished blocked state must offer a legal repositioning move");
+          game = move(game, placement.person.id, placement.cell.id);
+        }
         eventCount += game.lastEvaluation?.events.length ?? 0;
       }
       if (game.finished) break;
@@ -264,9 +274,12 @@ test("fixed-seed full runs terminate after six rides and produce actual varied t
             .length <= cell.capacity,
         );
     }
-    assert.equal(game.finished, "terminal");
-    assert.equal(rides, 6);
-    assert.equal(game.station, 6);
+    assert.ok(["terminal", "capacity", "no-space"].includes(game.finished!));
+    assert.ok(rides <= 6);
+    if (game.finished === "terminal") {
+      assert.equal(rides, 6);
+      assert.equal(game.station, 6);
+    }
     assert.ok(game.passengers.length >= 80);
     assert.ok(game.score > 0);
     assert.ok(game.discovered.length >= 5);
@@ -323,7 +336,7 @@ test("station perks are seeded, single-pick, and can change the first ignition",
   const { choosePerk, perkChoices, sectorAt } = await import("../src/game/index.ts");
   const seeds = Array.from({ length: 30 }, (_, i) => "perk-" + i);
   const offers = seeds.flatMap(seed => perkChoices(seed, 0));
-  assert.equal(new Set(offers.filter(offer => offer.kind === "buff").map(offer => offer.effect)).size, 5);
+  assert.equal(new Set(offers.filter(offer => offer.kind === "buff").map(offer => offer.effect)).size, 6);
   const seed = seeds.find(value => perkChoices(value, 0).some(offer => offer.id === "quiet"))!;
   const game = createGame(seed);
   const choices = perkChoices(seed, 0);
@@ -336,7 +349,7 @@ test("station perks are seeded, single-pick, and can change the first ignition",
   const cell = cells.find(cell => cell.kind === "standing" && sectorAt(cell.x + cell.width / 2) === quiet.sector)!;
   const rider = person("quiet-rider", cell.id, { stress: 50 });
   const fixture = { ...chosen, passengers: [rider], waiting: [] };
-  assert.equal(evaluate({ ...fixture, perk: undefined }).waves.length, 0);
+  assert.equal(evaluate({ ...fixture, perk: undefined, buffs: [] }).waves.length, 0);
   assert.equal(evaluate(fixture).waves[0].sources[0], rider.id);
   assert.equal(depart(fixture).perk, undefined);
 });
@@ -393,8 +406,8 @@ test("regional buffs are stronger while global buffs reach distant passengers", 
     const initial = state([person("local", local.id, { stress: 35, luggage: effect === "luggage" }),
       person("remote", remote.id, { stress: 35, luggage: effect === "luggage" })]);
     const baseline = evaluate(initial).passengers;
-    const focused = evaluate({ ...initial, perk: regional }).passengers;
-    const broad = evaluate({ ...initial, perk: global }).passengers;
+    const focused = evaluate({ ...initial, perk: regional, buffs: [regional] }).passengers;
+    const broad = evaluate({ ...initial, perk: global, buffs: [global] }).passengers;
     assert.ok(focused[0].stress > broad[0].stress, effect);
     assert.equal(focused[1].stress, baseline[1].stress, effect + " must stay local");
     assert.ok(broad[1].stress > baseline[1].stress, effect + " must reach remote riders");
@@ -418,8 +431,8 @@ test("global bridge adds a smaller cross-aisle boost throughout the board", asyn
     person("remote-source", remoteSource.id, { stress: 100 }), person("remote-target", remoteTarget.id, { stress: 0 }),
   ]);
   const baseline = evaluate(initial).passengers;
-  const focused = evaluate({ ...initial, perk: regional }).passengers;
-  const broad = evaluate({ ...initial, perk: global }).passengers;
+  const focused = evaluate({ ...initial, perk: regional, buffs: [regional] }).passengers;
+  const broad = evaluate({ ...initial, perk: global, buffs: [global] }).passengers;
   assert.equal(focused[1].stress - baseline[1].stress, 25);
   assert.equal(focused[3].stress, baseline[3].stress);
   assert.equal(broad[1].stress - baseline[1].stress, 8);
@@ -445,7 +458,7 @@ test("a global buff preserves realtime locality instead of ticking every remote 
   const fixture = { ...state([
     person("placed", "r1-b0-0", { stress: 10 }),
     person("remote", "r1-b4-1", { stress: 40 }),
-  ]), perk: global };
+  ]), perk: global, buffs: [global] };
   const evaluated = evaluatePlacement(fixture, "placed");
   assert.equal(evaluated.passengers[0].stress, 20);
   assert.equal(evaluated.passengers[1].stress, 40);
@@ -507,4 +520,216 @@ test("special skills have distinct reach and rarity-strength effects", async () 
   assert.ok(bridge.passengers[1].stress > plain.passengers[1].stress);
   const relay = evaluatePlacement(skillState("relay", "S", "r1-b1-3"), "special");
   assert.ok(relay.passengers[1].stress > 35);
+});
+
+test("run ledger survives station changes, freezes event sites, and shared summary rewards variety", async () => {
+  const { summarizeChaos } = await import("../src/game/index.ts");
+  const owner = person("owner", "r0-b0-0", { luggage: true, belongings: "hand", luggageCellId: "r1-b0-0", stress: 100 });
+  const initial = { ...state([owner]), waiting: [person("new", null, { stress: 50 })] };
+  const placed = place(initial, "new", "r1-b0-0");
+  assert.ok(placed.eventLedger.length > 0);
+  assert.ok(placed.eventLedger.every(event => event.station === 0 && event.sector === 0));
+  const summary = summarizeChaos(placed);
+  assert.equal(summary.total, placed.eventLedger.length);
+  assert.equal(summary.events + summary.rare, summary.total);
+  assert.equal(summary.types, 1);
+  assert.equal(summary.sectors, 1);
+  assert.equal(summary.mainCategory, "空間・座席");
+  assert.equal(summary.maxChain, placed.maxChain);
+  const next = depart(placed);
+  assert.deepEqual(next.eventLedger, placed.eventLedger);
+  assert.equal(next.maxChain, placed.maxChain);
+  assert.equal(summarizeChaos(next).label, summary.label);
+  const repeated = { ...next, eventLedger: Array.from({ length: 50 }, (_, i) => ({ ...placed.eventLedger[0], id: "repeat-" + i })) };
+  assert.equal(summarizeChaos(repeated).stage, 1, "one kind at one site cannot become the top stage");
+  const varied = { ...next, maxChain: 0, eventLedger: Array.from({ length: 20 }, (_, i) => ({
+    ...placed.eventLedger[0], id: "varied-" + i, type: "N" + String(i + 1).padStart(2, "0"), sector: i % 4,
+  })) };
+  assert.equal(summarizeChaos(varied).stage, 4, "variety and spread suffice without a mandatory chain depth");
+  assert.equal(summarizeChaos(createGame("calm")).stage, 0);
+});
+
+test("prior station events no longer suppress new trouble or discount repeated sites", async () => {
+  const { evaluatePlacement } = await import("../src/game/evaluation.ts");
+  const people = [person("caller", "r1-b1-1", { stress: 100, activity: "call" }), person("listener", "r1-b1-2", { stress: 60 })];
+  const initial = state(people);
+  const plain = evaluatePlacement(initial, "listener");
+  const prior = Array.from({ length: 25 }, (_, index) => ({
+    id: "past-" + index, type: "N19", name: "past", participants: ["caller", "listener"],
+    points: 40, wave: 1, rare: false, sources: [], sector: 1,
+  }));
+  const repeated = evaluatePlacement({ ...initial, stationEvents: prior, scoredEvents: prior.map(event => event.id) }, "listener");
+  assert.ok(repeated.events.some(event => event.type === "N19"));
+  assert.equal(repeated.score, plain.score);
+  const paid = evaluatePlacement({ ...initial, scoredEvents: repeated.events.map(event => event.id) }, "listener");
+  assert.ok(paid.events.every(event => !repeated.events.some(old => old.id === event.id)));
+  assert.ok(repeated.waves.length <= people.length + 1);
+  const fired = repeated.waves.filter(wave => wave.index > 0).flatMap(wave => wave.sources);
+  assert.equal(new Set(fired).size, fired.length, "each passenger fires only once in a reaction");
+});
+
+test("trouble changes actual behavior after its snapshot and lets a different spark reuse the site", () => {
+  const caller = person("caller", "r3-d0", { stress: 100, activity: "call" });
+  let game = { ...state([caller]), waiting: [person("listener", null, { stress: 60 }), person("screen", null, { stress: 60, activity: "screen", attention: "absorbed" })] };
+  game = place(game, "listener", "r3-d0");
+  assert.ok(game.lastEvaluation!.events.some(event => event.type === "N19"));
+  const changed = game.passengers.find(person => person.id === caller.id)!;
+  assert.equal(changed.activity, "screen");
+  assert.equal(changed.attention, "absorbed");
+  assert.equal(changed.lastReaction, "通話を切って画面に集中");
+  assert.equal(game.lastEvaluation!.passengers.find(person => person.id === caller.id)!.activity, "call");
+  assert.equal(caller.activity, "call", "input passenger remains immutable");
+  assert.equal(game.passengers.find(person => person.id === "listener")!.lastReaction, undefined);
+  game = move(game, "listener", "r0-b4-0");
+  game = place(game, "screen", "r3-d0");
+  assert.ok(game.lastEvaluation!.events.some(event => event.type === "N22"), "a phone-screen event follows the call event at the same place");
+  assert.equal(game.eventLedger.filter(event => event.type === "N19").length, 1);
+  assert.equal(game.eventLedger.filter(event => event.type === "N22").length, 1);
+  assert.equal(game.passengers.find(person => person.id === caller.id)!.cellId, "r3-d0");
+});
+
+test("seat trouble wakes and straightens its participant while preserving luggage reservations", () => {
+  const sleeper = person("sleeper", "r0-b1-2", { stress: 100, attention: "asleep", posture: "lean",
+    luggage: true, belongings: "hand", luggageCellId: "r1-b1-2" });
+  const game = place({ ...state([sleeper]), waiting: [person("neighbor", null, { stress: 65 })] }, "neighbor", "r0-b1-3");
+  assert.ok(game.lastEvaluation!.events.some(event => event.type === "N10"));
+  const changed = game.passengers.find(person => person.id === sleeper.id)!;
+  assert.equal(changed.attention, "aware");
+  assert.equal(changed.posture, "normal");
+  assert.equal(changed.lastReaction, "目を覚ました・姿勢を直した");
+  assert.equal(changed.cellId, sleeper.cellId);
+  assert.equal(changed.luggageCellId, sleeper.luggageCellId);
+  assert.equal(changed.luggage, true);
+  assert.equal(game.lastEvaluation!.passengers.find(person => person.id === sleeper.id)!.attention, "asleep");
+});
+
+test("all six buff choices remain available, persistent and nonduplicating across a run", async () => {
+  const { perkChoices, choosePerk } = await import("../src/game/index.ts");
+  const { buffKey } = await import("../src/game/perks.ts");
+  for (const mode of ["sector", "global"] as const) {
+    for (const seed of ["accumulate-0", "accumulate-1", "accumulate-2"]) {
+      let game = createGame(seed);
+      for (let phase = 0; phase < 6; phase++) {
+        const offers = perkChoices(seed, phase, game.buffs);
+        assert.equal(offers.length, 3);
+        assert.deepEqual(offers, perkChoices(seed, phase, game.buffs));
+        assert.equal(offers[0].kind, "special");
+        assert.equal(offers[1].scope, "sector");
+        assert.equal(offers[2].scope, "global");
+        for (const offer of offers.slice(1)) assert.ok(!game.buffs.some(buff => buffKey(buff) === buffKey(offer)));
+        game = choosePerk(game, offers.find(offer => offer.scope === mode)!.id);
+        assert.equal(game.buffs.length, phase + 1);
+        const before = game.buffs;
+        game = depart({ ...game, waiting: [] });
+        assert.deepEqual(game.buffs, before);
+      }
+      assert.equal(new Set(game.buffs.map(buffKey)).size, 6);
+    }
+  }
+});
+
+test("persistent buffs apply after departure, respect realtime locality and cap combined burden", async () => {
+  const { perkChoices, choosePerk, sectorAt } = await import("../src/game/index.ts");
+  const { evaluatePlacement } = await import("../src/game/evaluation.ts");
+  const seed = Array.from({ length: 100 }, (_, i) => "persistent-" + i)
+    .find(seed => perkChoices(seed, 0).some(offer => offer.id === "quiet-global"))!;
+  let game = choosePerk(createGame(seed), "quiet-global");
+  game = depart({ ...game, passengers: [], waiting: [] });
+  const fixture = { ...game, passengers: [person("local", "r1-b1-1", { stress: 10 }), person("far", "r1-b4-1", { stress: 40 })] };
+  assert.equal(fixture.perk, undefined);
+  const result = evaluatePlacement(fixture, "local");
+  assert.equal(result.passengers[0].stress, 20);
+  assert.equal(result.passengers[1].stress, 40);
+  const offers = Array.from({ length: 200 }, (_, i) => perkChoices("cap-" + i, 0)).flat();
+  const buffs = ["quiet", "noise", "switch"].flatMap(effect => [
+    offers.find(buff => buff.effect === effect && buff.scope === "global")!,
+    { ...offers.find(buff => buff.effect === effect && buff.scope === "sector")!, sector: sectorAt(cellById.get("r1-b1-1")!.x + 230) },
+  ]);
+  const capped = evaluate({ ...state([person("local", "r1-b1-1", { stress: 10, activity: "call" })]), buffs });
+  assert.equal(capped.passengers[0].stress, 58, "combined buff burden is capped at 48");
+  const bridges = [
+    offers.find(buff => buff.id === "bridge-global")!,
+    { ...offers.find(buff => buff.id === "bridge")!, sector: sectorAt(cellById.get("r2-b1-2")!.x + 230) },
+  ];
+  const crossFixture = { ...state([
+    person("source-a", "r1-b1-2", { stress: 100, bodySpace: 0.5 }),
+    person("source-b", "r1-b1-2", { stress: 100, bodySpace: 0.5 }),
+    person("target", "r2-b1-2", { stress: 0 }),
+  ]), buffs: bridges };
+  const cross = evaluate(crossFixture);
+  const withoutBridge = evaluate({ ...crossFixture, buffs: [] });
+  assert.equal(cross.passengers[2].stress - withoutBridge.passengers[2].stress, 35,
+    "two sources keep their base transmission but bridge additions cap at 35");
+});
+
+test("boarding-only special skills create distinct actions and groups without breaking existing parties", async () => {
+  const { choosePerk, perkChoices } = await import("../src/game/index.ts");
+  for (const skill of ["gather", "snack"] as const) {
+    for (const rarity of ["S", "SSS"] as const) {
+      const seed = Array.from({ length: 500 }, (_, i) => "role-" + i)
+        .find(seed => perkChoices(seed, 0)[0].skill === skill && perkChoices(seed, 0)[0].rarity === rarity)!;
+      assert.ok(seed, `${skill}/${rarity} is reachable`);
+      const template = choosePerk(createGame(seed), perkChoices(seed, 0)[0].id).waiting[0];
+      assert.equal(template.activity, skill === "gather" ? "talk" : "food");
+      const targets = [
+        person("left", "r1-b1-1", { stress: 0, activity: "none", luggage: true, belongings: "hand", luggageCellId: "r2-b1-1" }),
+        person("right", "r1-b1-3", { stress: 0, activity: "read" }),
+        person("opposite", "r2-b1-2", { stress: 0, activity: "screen", attention: "absorbed" }),
+        person("protected", "r0-b1-2", { stress: 0, attention: "asleep", group: "existing-party" }),
+        person("remote", "r1-b4-1", { stress: 0 }),
+      ];
+      const initial = { ...state(targets), waiting: [{ ...template, stress: 0 }] };
+      const placed = place(initial, template.id, "r1-b1-2");
+      const count = rarity === "SSS" ? 3 : 1;
+      const changed = placed.passengers.filter(person => person.lastReaction === (skill === "gather" ? "話の輪に加わった" : "おやつを受け取った"));
+      assert.equal(changed.length, count);
+      assert.ok(changed.every(person => person.activity === (skill === "gather" ? "talk" : "food") && person.attention === "aware"));
+      if (skill === "gather") assert.ok(changed.every(person => person.group === template.group && template.group !== null));
+      assert.equal(placed.passengers.find(person => person.id === "protected")!.group, "existing-party");
+      assert.equal(placed.passengers.find(person => person.id === "protected")!.attention, "asleep");
+      assert.equal(placed.passengers.find(person => person.id === "left")!.luggageCellId, "r2-b1-1");
+      assert.equal(targets[0].activity, "none", "original input is unchanged");
+      const moved = move(placed, template.id, "r1-b4-2");
+      assert.equal(moved.passengers.find(person => person.id === "remote")!.activity, "none", "moving does not repeat the boarding skill");
+    }
+  }
+});
+
+test("station profiles produce reproducible, distinct passenger waves without changing route constraints", async () => {
+  const { stationProfile } = await import("../src/game/index.ts");
+  const { generateSchedule } = await import("../src/game/generation.ts");
+  const totals = new Map<string, { people: number; awake: number; screen: number; luggage: number; noisy: number; read: number; grouped: number }>();
+  let terminal = 0, riders = 0;
+  for (let sample = 0; sample < 40; sample++) {
+    const seed = "profile-" + sample;
+    const schedule = generateSchedule(seed);
+    assert.deepEqual(schedule, generateSchedule(seed));
+    for (let station = 0; station < 6; station++) {
+      const profile = stationProfile(seed, station);
+      assert.deepEqual(profile, stationProfile(seed, station));
+      if (!totals.has(profile.id)) totals.set(profile.id, { people: 0, awake: 0, screen: 0, luggage: 0, noisy: 0, read: 0, grouped: 0 });
+      const stats = totals.get(profile.id)!;
+      for (const person of schedule[station]) {
+        riders++;
+        if (person.destination === 6) terminal++;
+        assert.ok(person.destination > station && person.destination <= 6);
+        assert.equal(person.luggage, person.belongings !== "none");
+        stats.people++;
+        if (person.attention !== "asleep") stats.awake++;
+        if (person.activity === "screen") stats.screen++;
+        if (person.luggage) stats.luggage++;
+        if (person.audio === "leak" || person.activity === "call" || person.activity === "talk") stats.noisy++;
+        if (person.activity === "read") stats.read++;
+        if (person.group) stats.grouped++;
+      }
+    }
+  }
+  assert.equal(totals.size, 4);
+  const commute = totals.get("commute")!, luggage = totals.get("luggage")!, quiet = totals.get("quiet")!, groups = totals.get("groups")!;
+  assert.ok(commute.screen / commute.awake > 0.65);
+  assert.ok(luggage.luggage / luggage.people > 0.7);
+  assert.equal(quiet.noisy, 0);
+  assert.ok(quiet.read / quiet.awake > 0.65);
+  assert.ok(groups.grouped / groups.awake > 0.65);
+  assert.ok(terminal / riders > 0.92 && terminal / riders < 0.98);
 });

@@ -1,6 +1,6 @@
 import './style.css';
 import { GameAudio } from './audio.ts';
-import { createGame, place, move, undo, depart, choosePerk, perkChoices, sectorAt, exitPath, canPlace, adjacent, cells, stations, eventDefinitions, getCellUsage, getSpaceCapacity, capacity } from './game/index.ts';
+import { createGame, place, move, undo, depart, choosePerk, perkChoices, sectorAt, exitPath, canPlace, adjacent, cells, stations, eventDefinitions, getCellUsage, getSpaceCapacity, capacity, summarizeChaos, stationProfile } from './game/index.ts';
 import type { Cell, Evaluation, GameState, Passenger, Species, Wave } from './game/types.ts';
 
 // ===== SECTION: Session and presentation state =====
@@ -43,7 +43,8 @@ let announcement = '';
 
 let focusRequest: string | null = null;
 let discovered = readDiscoveries();
-let summary = { events: 0, rare: 0, maxChain: 0 };
+let presentationMode: 'full' | 'tempo' = readStored('chaos-line.presentation') === 'tempo' ? 'tempo' : 'full';
+const firstSeenTypes = new WeakMap<Evaluation, Set<string>>();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function readStored(key: string): string | null {
@@ -100,12 +101,14 @@ function render(): void {
     ? Math.round(state.passengers.reduce((sum, rider) => sum + rider.stress, 0) / state.passengers.length)
     : 0;
   const onboardCount = state.passengers.length;
+  const chaos = summarizeChaos(state);
+  const nextProfile = state.station + 1 < stations.length - 1 ? stationProfile(state.seed, state.station + 1).name : '終点';
   app.innerHTML = `<main class="app-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="満員電車 ホーム"><span class="brand-mark">満</span><span><h1>満員電車</h1></span></a>
       <nav class="toolbar" aria-label="ゲームメニュー">
         <button data-action="help" aria-label="遊び方"><span class="menu-long">遊び方</span><span class="menu-short">？</span></button><button data-action="catalog"><span class="menu-long">トラブル図鑑</span><span class="menu-short">図鑑</span> <span class="count">${discovered.size}/${eventDefinitions.length}</span></button>
-        <button data-action="sound" aria-label="音の設定">${audio.muted ? '消音' : '音あり'}</button><button data-action="restart" aria-label="新しい運行"><span class="menu-long">新しい運行</span><span class="menu-short">再開</span></button>
+        <button data-action="sound" aria-label="設定">設定</button><button data-action="restart" aria-label="新しい運行"><span class="menu-long">新しい運行</span><span class="menu-short">再開</span></button>
       </nav>
     </header>
     <section class="masthead" aria-label="運行状況">
@@ -113,7 +116,7 @@ function render(): void {
     </section>
 
     <div class="game-layout"><div class="main-panel">
-      <section class="station-strip" aria-label="現在駅と次駅"><div><span>現在駅</span><strong>${stations[state.station]}</strong></div><b class="station-arrow" aria-hidden="true">→</b><div class="station-next"><span>次駅</span><strong>${stations[Math.min(stations.length - 1, state.station + 1)]}</strong></div><b class="station-count">${currentLabel()}</b></section>
+      <section class="station-strip" aria-label="現在駅と次駅"><div><span>現在駅</span><strong>${stations[state.station]}</strong></div><b class="station-arrow" aria-hidden="true">→</b><div class="station-next"><span class="station-profile" aria-label="次駅の乗客の傾向">${escape(nextProfile)}</span><strong>${stations[Math.min(stations.length - 1, state.station + 1)]}</strong></div><b class="station-count">${currentLabel()}</b></section>
       <div class="route" aria-label="${stations.length}駅の進行">${stations.map((name, index) => `<span class="route-stop ${index < state.station ? 'passed' : ''} ${index === state.station ? 'current' : ''}" title="${index + 1} ${name}"><i></i>${index === state.station ? `<b>${index + 1}</b>` : ''}</span>`).join('')}</div>
       <section class="board-panel" aria-label="車両の配置盤面"><div class="board-top"><h2>車内配置</h2><div class="board-tools"><div class="door-jumps" aria-label="扉付近へ移動">${[0, 1, 2, 3].map(door => `<button data-action="jump-${door}" aria-label="乗降口${door + 1}付近へ移動">扉${door + 1}</button>`).join('')}</div><button data-action="zoom" aria-pressed="${zoom}">${zoom ? '縮小 −' : '拡大 ＋'}</button><span class="board-direction">北 ↑</span></div></div>
         <div class="board-scroll">${renderBoard()}</div>
@@ -123,7 +126,7 @@ function render(): void {
       <section class="queue-panel" aria-label="乗車待ち"><div class="section-line"><h2>乗車待ち <span>${state.waiting.length}人</span></h2></div><div class="passenger-queue">${state.waiting.length ? state.waiting.map(renderPassengerCard).join('') : `<div class="empty-queue">${state.finished ? '運行終了' : '配置完了。発車できます。'}</div>`}</div></section>
     </div><aside class="sidebar" aria-label="選択中の乗客と区間目標">
       <section class="selection-panel" aria-label="選択中の乗客">${person ? renderPersonDetail(person) : '<h2 class="selected-name">乗客を選択</h2><p class="muted">選択した乗客の属性を表示します。</p>'}</section>
-      <section class="run-status"><span>発生したトラブル</span><strong>${summary.events + summary.rare}<small>件</small></strong>${state.perk ? `<button data-action="upgrade" class="acquired-perk">${escape(state.perk.name)}</button>` : ''}</section>
+      <section class="run-status"><button class="chaos-overview" data-action="result" aria-label="${escape(chaos.label)}、${chaos.total}件、${chaos.types}種類、4区画中${chaos.sectors}区画。トラブル履歴を開く"><span class="chaos-level">${escape(chaos.label)}</span><strong>${chaos.total}<small>件</small> <i>/</i> ${chaos.types}<small>種</small> <i>/</i> ${chaos.sectors}<small>/4区画</small></strong></button>${state.perk ? `<button data-action="upgrade" class="acquired-perk">強化一覧</button>` : ''}</section>
       <div class="sidebar-actions"><button class="depart-button" data-action="depart" ${state.waiting.length || animating || evaluationQueue.length || state.finished || !state.perk ? 'disabled' : ''}><span>${state.finished ? '運行終了' : '発車する'}</span><b aria-hidden="true">→</b></button>${state.finished ? '<button class="result-button" data-action="result">運行結果を見る</button>' : ''}</div>
       <section class="forecast"><h3>次駅の乗車</h3><strong>${state.schedule[Math.min(stations.length - 1, state.station + 1)].length}<small>人</small></strong><p>${nextComposition()}</p></section>
     </aside></div>
@@ -147,11 +150,6 @@ function render(): void {
   if (restore) app.querySelector<HTMLElement>(restore)?.focus({ preventScroll: true });
   focusRequest = null;
 }
-function renderWaveBreakdown(evaluation: Evaluation): string {
-  const scoringWaves = evaluation.waves.filter(wave => wave.score > 0);
-  if (!scoringWaves.length) return '';
-  return `<details class="score-breakdown"><summary>得点内訳</summary>${scoringWaves.map(wave => `<div><span>第${wave.index}段階 · ${wave.events.length}件 / ${new Set(wave.events.map(event => event.type)).size}種類</span><b>+${wave.score}</b></div>`).join('')}<p>通常イベントは件数・種類・連鎖数で加点。特殊イベントは固定点です。</p></details>`;
-}
 function nextComposition(): string {
   const people = state.schedule[Math.min(stations.length - 1, state.station + 1)];
   return Object.keys(portraits).map(species => { const count = people.filter(person => person.species === species).length; return count ? `${species} ${count}` : ''; }).filter(Boolean).join(' · ') || '終着駅では全員降車';
@@ -164,7 +162,7 @@ const postureLabels: Record<Passenger['posture'], string> = { normal: '通常姿
 const attentionLabels: Record<Passenger['attention'], string> = { aware: '周囲を見る', absorbed: '没頭', asleep: '居眠り' };
 const bagLabels: Record<Passenger['belongings'], string> = { none: '荷物なし', backpack: 'リュック', hand: '手提げ', wheeled: '車輪付き荷物' };
 function renderPersonDetail(person: Passenger): string {
-  return `<div class="person-detail-heading">${personIcon(person)}<h2>${escape(personName(person))}<small>${person.special?.rarity ?? `${person.age}代`}</small></h2></div><p class="selected-trip">${person.special ? `${escape(person.special.name)} · ${person.special.rarity} · ` : ''}${stations[person.destination]}で降車${person.luggage ? ' · 荷物0.5マス' : ''}${person.bodySpace === 0.5 ? ' · 窮屈' : ''}</p><div class="stress-detail"><span>ストレス <b>${person.stress}</b> / 100</span><i><b style="width:${person.stress}%"></b></i></div><details class="passenger-more" ${window.matchMedia('(min-width: 761px)').matches ? 'open' : ''}><summary>乗客の詳細</summary><dl class="person-properties"><div><dt>降車</dt><dd>${stations[person.destination]}</dd></div><div><dt>立席感度</dt><dd>${person.sensitivity}${person.sensitivity >= 4 ? ' · 着席優先' : ''}</dd></div><div><dt>荷物</dt><dd>${bagLabels[person.belongings]}${person.luggage ? '・通路0.5マス' : ''}</dd></div><div><dt>占有</dt><dd>${person.bodySpace === 0.5 ? '0.5マス・窮屈' : '1マス'}</dd></div><div><dt>行動</dt><dd>${activityLabels[person.activity]}${person.audio === 'leak' ? ' · 音漏れ' : ''}</dd></div><div><dt>状態</dt><dd>${postureLabels[person.posture]} · ${attentionLabels[person.attention]}</dd></div>${person.group ? `<div><dt>同行組</dt><dd>${escape(person.group)}</dd></div>` : ''}</dl></details>`;
+  return `<div class="person-detail-heading">${personIcon(person)}<h2>${escape(personName(person))}<small>${person.special?.rarity ?? `${person.age}代`}</small></h2></div><p class="selected-trip">${person.special ? `${escape(person.special.name)} · ${person.special.rarity} · ` : ''}${stations[person.destination]}で降車${person.luggage ? ' · 荷物0.5マス' : ''}${person.bodySpace === 0.5 ? ' · 窮屈' : ''}</p><div class="stress-detail"><span>ストレス <b>${person.stress}</b> / 100</span><i><b style="width:${person.stress}%"></b></i></div><details class="passenger-more" ${window.matchMedia('(min-width: 761px)').matches ? 'open' : ''}><summary><span class="detail-label">乗客の詳細</span>${person.lastReaction ? `<span class="reaction-detail">${escape(person.lastReaction)}</span>` : ''}</summary><dl class="person-properties">${person.lastReaction ? `<div class="reaction-property"><dt>変化</dt><dd>${escape(person.lastReaction)}</dd></div>` : ''}<div><dt>降車</dt><dd>${stations[person.destination]}</dd></div><div><dt>立席感度</dt><dd>${person.sensitivity}${person.sensitivity >= 4 ? ' · 着席優先' : ''}</dd></div><div><dt>荷物</dt><dd>${bagLabels[person.belongings]}${person.luggage ? '・通路0.5マス' : ''}</dd></div><div><dt>占有</dt><dd>${person.bodySpace === 0.5 ? '0.5マス・窮屈' : '1マス'}</dd></div><div><dt>行動</dt><dd>${activityLabels[person.activity]}${person.audio === 'leak' ? ' · 音漏れ' : ''}</dd></div><div><dt>状態</dt><dd>${postureLabels[person.posture]} · ${attentionLabels[person.attention]}</dd></div>${person.group ? `<div><dt>同行組</dt><dd>${escape(person.group)}</dd></div>` : ''}</dl></details>`;
 }
 
 // ===== SECTION: Coordinate-based SVG train =====
@@ -277,7 +275,7 @@ function renderCell(cell: Cell, people: Passenger[]): string {
     const flaring = activeWave?.sources.includes(occupant.id) || activeWave?.triggered.includes(occupant.id);
     const motion = portraits[occupant.species];
     const receiving = activeWave?.receivers.includes(occupant.id) === true;
-    return `<g class="person ${occupant.special ? 'special-passenger rarity-' + occupant.special.rarity : ''} ${compressed ? 'compressed' : ''} ${occupants.length === 3 ? 'crowded' : ''} ${flaring ? 'is-flaring' : ''} ${receiving ? 'is-receiving' : ''} ${selectedId === occupant.id ? 'is-selected' : ''}" ${!state.finished && !reducedMotion.matches && boarding.has(occupant.id) ? 'visibility="hidden"' : ''} data-person="${occupant.id}" data-body-space="${occupant.bodySpace ?? 1}" aria-label="${occupant.species} ${occupant.age}代 ストレス${stress} ${stations[occupant.destination]}で降車${compressed ? ' 半マスで窮屈' : ''}"><rect class="person-selection" x="${x - 12}" y="${rowY(cell.row) + 8}" width="${tokenWidth + 24}" height="530" rx="45"/>${receiving ? `<ellipse class="receiver-ring" cx="${x + tokenWidth / 2}" cy="${rowY(cell.row) + 270}" rx="${tokenWidth / 2 + 35}" ry="245"/>` : ''}<g class="token-reaction"><svg x="${x}" y="${rowY(cell.row) + 25}" width="${tokenWidth}" height="400" viewBox="0 0 64 64" ${compressed && cell.kind === 'standing' ? 'preserveAspectRatio="none"' : ''}><use class="token-body motion-${motion} ${stress >= 80 ? 'agitated' : ''}" style="${motionStyle(occupant)}" href="${portraitHref(occupant)}"></use></svg></g><rect class="stress-track" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${tokenWidth - 40}" height="38"/><rect class="stress-fill ${stress >= 80 ? 'hot' : ''}" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${(tokenWidth - 40) * stress / 100}" height="38"/>${occupant.special ? `<text class="special-rarity" x="${x + tokenWidth / 2}" y="${rowY(cell.row) + 80}">${occupant.special.rarity}</text>` : ''}${occupant.luggage ? `<text class="person-badge" x="${x + tokenWidth - 90}" y="${rowY(cell.row) + 400}">荷</text>` : ''}${occupant.destination === state.station + 1 ? `<text class="person-next" x="${x + 90}" y="${rowY(cell.row) + 180}">↓</text>` : ''}</g>`;
+    return `<g class="person ${occupant.special ? 'special-passenger rarity-' + occupant.special.rarity : ''} ${compressed ? 'compressed' : ''} ${occupants.length === 3 ? 'crowded' : ''} ${flaring ? 'is-flaring' : ''} ${receiving ? 'is-receiving' : ''} ${selectedId === occupant.id ? 'is-selected' : ''}" ${!state.finished && !reducedMotion.matches && boarding.has(occupant.id) ? 'visibility="hidden"' : ''} data-person="${occupant.id}" data-body-space="${occupant.bodySpace ?? 1}" aria-label="${occupant.species} ${occupant.age}代 ストレス${stress} ${stations[occupant.destination]}で降車${compressed ? ' 半マスで窮屈' : ''}"><rect class="person-selection" x="${x - 12}" y="${rowY(cell.row) + 8}" width="${tokenWidth + 24}" height="530" rx="45"/>${receiving ? `<ellipse class="receiver-ring" cx="${x + tokenWidth / 2}" cy="${rowY(cell.row) + 270}" rx="${tokenWidth / 2 + 35}" ry="245"/>` : ''}<g class="token-reaction"><svg x="${x}" y="${rowY(cell.row) + 25}" width="${tokenWidth}" height="400" viewBox="0 0 64 64" ${compressed && cell.kind === 'standing' ? 'preserveAspectRatio="none"' : ''}><use class="token-body motion-${motion} ${stress >= 80 ? 'agitated' : ''}" style="${motionStyle(occupant)}" href="${portraitHref(occupant)}"></use></svg></g><rect class="stress-track" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${tokenWidth - 40}" height="38"/><rect class="stress-fill ${stress >= 80 ? 'hot' : ''}" x="${x + 20}" y="${rowY(cell.row) + 450}" width="${(tokenWidth - 40) * stress / 100}" height="38"/>${occupant.lastReaction ? `<circle class="reaction-dot" cx="${x + tokenWidth - 35}" cy="${rowY(cell.row) + 75}" r="24"><title>${escape(occupant.lastReaction)}</title></circle>` : ''}${occupant.special ? `<text class="special-rarity" x="${x + tokenWidth / 2}" y="${rowY(cell.row) + 80}">${occupant.special.rarity}</text>` : ''}${occupant.luggage ? `<text class="person-badge" x="${x + tokenWidth - 90}" y="${rowY(cell.row) + 400}">荷</text>` : ''}${occupant.destination === state.station + 1 ? `<text class="person-next" x="${x + 90}" y="${rowY(cell.row) + 180}">↓</text>` : ''}</g>`;
   }).join('');
   return `<g class="cell ${cell.kind} ${cell.priority ? 'priority' : ''} ${available ? 'available' : ''} ${highlighted ? 'hovered' : ''} ${personSelected ? 'selected-cell' : ''} ${occupants.length === 3 && cell.kind === 'door' ? 'overcrowded' : ''} ${luggageSpace ? 'has-luggage' : ''}" data-cell="${cell.id}" data-usage="${usage}" role="button" tabindex="${cell.id === (hoveredCell ?? cells[0].id) ? '0' : '-1'}" aria-label="${description}"><title>${description}</title><rect class="cell-shape" x="${cell.x + 15}" y="${rowY(cell.row)}" width="${cell.width - 30}" height="560" rx="${cell.kind === 'seat' ? 55 : 15}"/>${cell.kind === 'seat' ? `<path class="seat-back" d="M${cell.x + 55} ${rowY(cell.row) + (cell.row === 0 ? 65 : 495)}H${cell.x + cell.width - 55}" />` : ''}${heatLayer}${reservationSvg}${!occupants.length && cell.priority ? `<text class="priority-symbol" x="${cell.x + cell.width / 2}" y="${rowY(cell.row) + 350}">優</text>` : ''}${portraitsSvg}</g>`;
 }
@@ -314,6 +312,10 @@ function bindEvents(): void {
   app.querySelector<HTMLInputElement>('#music-toggle')?.addEventListener('change', event => { enableAudio(); audio.setMusicEnabled((event.target as HTMLInputElement).checked); });
   app.querySelector<HTMLInputElement>('#mute-toggle')?.addEventListener('change', event => { enableAudio(); audio.setMuted(!(event.target as HTMLInputElement).checked); });
   app.querySelector<HTMLInputElement>('#volume')?.addEventListener('input', event => { enableAudio(); audio.setVolume(Number((event.target as HTMLInputElement).value)); });
+  app.querySelector<HTMLSelectElement>('#presentation-mode')?.addEventListener('change', event => {
+    presentationMode = (event.target as HTMLSelectElement).value === 'tempo' ? 'tempo' : 'full';
+    writeStored('chaos-line.presentation', presentationMode);
+  });
   app.querySelector('.modal-backdrop')?.addEventListener('click', event => { if (event.target === event.currentTarget) closeModal(); });
   app.querySelector<HTMLFormElement>('#restart-form')?.addEventListener('submit', event => {
     event.preventDefault();
@@ -424,9 +426,7 @@ async function handleAction(action: string): Promise<void> {
 function queueEvaluation(evaluation: Evaluation): void {
   if (presented.has(evaluation)) return;
   presented.add(evaluation);
-  summary.events += evaluation.events.filter(event => !event.rare).length;
-  summary.rare += evaluation.events.filter(event => event.rare).length;
-  summary.maxChain = Math.max(summary.maxChain, evaluation.maxChain);
+  firstSeenTypes.set(evaluation, new Set(evaluation.events.filter(event => !discovered.has(event.type)).map(event => event.type)));
   evaluation.events.forEach(event => discovered.add(event.type));
   writeStored('chaos-line.discovery', JSON.stringify([...discovered]));
   // Every accepted evaluation is shown once with the same reading time, even when queued.
@@ -590,13 +590,15 @@ async function animateEvaluation(): Promise<void> {
       for (activeEventOffset = 0; activeEventOffset < Math.max(1, wave.events.length); activeEventOffset += 2) {
         if (token !== animationToken) return;
         render();
-        focusWave(wave, evaluation);
         const events = currentEvents();
         const rare = events.some(event => event.rare);
         if (activeEventOffset === 0) audio.playWave(wave.index, wave.events.length, rare);
         else audio.playEvent(rare, activeEventOffset / 2);
         const mobile = window.matchMedia('(max-width: 760px)').matches;
-        const duration = events.length ? (rare ? (mobile ? 3800 : 4800) : (mobile ? 3000 : 4200)) + (events.length > 1 ? 450 : 0) : 420;
+        const familiar = events.length > 0 && events.every(event => !event.rare && !firstSeenTypes.get(evaluation)?.has(event.type));
+        const compact = presentationMode === 'tempo' && familiar;
+        if (!compact) focusWave(wave, evaluation);
+        const duration = compact ? 1200 : events.length ? (rare ? (mobile ? 3800 : 4800) : (mobile ? 3000 : 4200)) + (events.length > 1 ? 450 : 0) : 420;
         if (!await holdPresentation(duration, token)) return;
       }
     }
@@ -633,7 +635,6 @@ function restart(seed: string): void {
   resetCamera();
   activeEventOffset = 0;
   state = createGame(seed.slice(0, 80));
-  summary = { events: 0, rare: 0, maxChain: 0 };
   selectedId = state.waiting[0]?.id ?? null;
   hoveredCell = null;
   animating = false;
@@ -646,14 +647,15 @@ function restart(seed: string): void {
 
 // ===== SECTION: Dialogs and event discovery =====
 function renderUpgrade(): string {
-  if (state.perk) return `<p>${escape(state.perk.name)}</p><p>${escape(state.perk.description)}</p>`;
-  return `<div class="upgrade-cards">${perkChoices(state.seed, state.station).map(choice => {
+  const acquired = state.buffs.length ? `<details class="acquired-buffs"><summary>取得済みバフ ${state.buffs.length}</summary><p class="dialog-note">効果は合算。ストレス追加は最大48、向かいの通路への追加は最大35。</p><ul>${state.buffs.map(buff => `<li><strong>${escape(buff.name)}</strong><span>${escape(buff.description)}</span></li>`).join('')}</ul></details>` : '';
+  if (state.perk) return `${state.perk.kind === 'special' ? `<p>${escape(state.perk.name)}</p><p class="dialog-note">${escape(state.perk.description)}</p>` : ''}${acquired}`;
+  return `<div class="upgrade-cards">${perkChoices(state.seed, state.station, state.buffs).map(choice => {
     const special = choice.kind === 'special';
     return `<button class="upgrade-card ${special ? 'special-choice rarity-' + choice.rarity : ''}" data-action="perk-${choice.id}">
       <span class="upgrade-kind">${special ? `特殊駒 · ${choice.rarity}` : choice.scope === 'global' ? '全体バフ' : '区画バフ'}</span>
       ${special ? `<svg class="upgrade-portrait" viewBox="0 0 64 64" aria-hidden="true"><use href="${import.meta.env.BASE_URL}special-tokens.svg#${choice.skill}"/></svg>` : ''}<strong>${escape(choice.name)}</strong><span>${escape(choice.description)}</span>
     </button>`;
-  }).join('')}</div>`;
+  }).join('')}</div>${acquired}`;
 }
 
 function renderCutin(): string {
@@ -724,7 +726,7 @@ function renderCutin(): string {
   return `<div class="event-cutin" aria-live="polite"><div class="cutin-stack">
     ${currentEvents().map(event => {
       const flavor = flavors[event.type] ?? 'ひとつのため息が、車内をざわつかせた。';
-      return `<article class="cutin-metal ${event.rare ? 'rare-cutin' : ''}" data-event="${event.type}">
+      return `<article class="cutin-metal ${event.rare ? 'rare-cutin' : ''}" data-event="${event.type}" data-event-id="${escape(event.id)}" data-event-station="${event.station ?? state.station}">
         <span class="cutin-tag">${event.rare ? '特殊トラブル' : `${activeWave!.index}連鎖`} · ${activeEventOffset + 1}–${Math.min(activeEventOffset + 2, activeWave!.events.length)} / ${activeWave!.events.length}</span>
         <strong>${escape(event.name)}</strong><p>${flavor}</p>
       </article>`;
@@ -740,19 +742,20 @@ function renderModal(): string {
     body = renderUpgrade();
   } else if (modal === 'help') {
     title = '遊び方';
-    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>各停車駅で特殊駒1枚とバフ2枚から1つ選びます。配置すると反応が確定し、ストレスが伝播します。全員を配置したら発車できます。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">車内のストレスとトラブルを増やしていきます。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
+    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>各停車駅で特殊駒1枚とバフ2枚から1つ選びます。バフは終点まで重なります。配置すると反応が確定し、ストレスが伝播します。全員を配置したら発車できます。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">車内のストレスとトラブルを増やしていきます。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
   } else if (modal === 'catalog') {
     title = 'トラブル図鑑';
     body = `<p class="dialog-note">通常${eventDefinitions.filter(event => !event.rare).length}種・特殊${eventDefinitions.filter(event => event.rare).length}種。連鎖でストレスが80以上になった乗客を含むと成立します。</p><div class="catalog-controls"><input id="catalog-search" placeholder="名前・条件で探す" aria-label="トラブルを検索" value="${escape(search)}"><select id="catalog-filter" aria-label="図鑑の絞り込み"><option value="all" ${catalogFilter === 'all' ? 'selected' : ''}>すべて</option><option value="normal" ${catalogFilter === 'normal' ? 'selected' : ''}>通常</option><option value="rare" ${catalogFilter === 'rare' ? 'selected' : ''}>特殊</option><option value="found" ${catalogFilter === 'found' ? 'selected' : ''}>発見済み</option><option value="new" ${catalogFilter === 'new' ? 'selected' : ''}>未発見</option></select></div><div class="catalog-list">${catalogCards()}</div>`;
   } else if (modal === 'sound') {
-    title = 'サウンド';
-    body = `<div class="sound-controls"><label>音を有効にする<input id="mute-toggle" type="checkbox" ${audio.muted ? '' : 'checked'}></label><label>BGM<input id="music-toggle" type="checkbox" ${audio.musicEnabled ? 'checked' : ''}></label><label>音量<input id="volume" type="range" min="0" max="1" step="0.01" value="${audio.volume}"></label><button class="secondary-button" data-action="audio-retry">音源を再読み込み</button></div>`;
+    title = '設定';
+    body = `<div class="sound-controls"><label for="presentation-mode">演出<select id="presentation-mode"><option value="full" ${presentationMode === 'full' ? 'selected' : ''}>全件しっかり</option><option value="tempo" ${presentationMode === 'tempo' ? 'selected' : ''}>テンポ優先</option></select></label><p class="dialog-note">テンポ優先では、見たことのある通常トラブルだけを短く表示します。</p><label>音を有効にする<input id="mute-toggle" type="checkbox" ${audio.muted ? '' : 'checked'}></label><label>BGM<input id="music-toggle" type="checkbox" ${audio.musicEnabled ? 'checked' : ''}></label><label>音量<input id="volume" type="range" min="0" max="1" step="0.01" value="${audio.volume}"></label><button class="secondary-button" data-action="audio-retry">音源を再読み込み</button></div>`;
   } else if (modal === 'restart') {
     title = '新しい運行';
     body = `<form id="restart-form"><label class="field-label" for="seed-input">シード（同じ値で乗客と乗降を再現）</label><input class="seed-input" id="seed-input" maxlength="80" value="${escape(state.seed)}"><div class="modal-actions"><button type="button" class="secondary-button" data-action="random-seed">別のシード</button><button class="primary-button" type="submit">このシードで始める</button></div></form>`;
   } else {
-    title = state.finished === 'terminal' ? '終着駅に到着' : state.finished === 'capacity' ? '混雑率200%で終了' : '運行結果';
-    body = `<div class="result-hero"><p class="eyebrow">車内の状況</p><strong>${summary.events + summary.rare}<small>件のトラブル</small></strong><p>${state.station + 1}駅目 · ${stations[state.station]}</p></div><div class="result-stats"><div><b>${summary.events}</b>通常トラブル</div><div><b>${summary.rare}</b>特殊イベント</div><div><b>${summary.maxChain}</b>最大連鎖</div><div><b>${state.discovered.length}</b>今回の発見</div></div><ul class="event-log">${state.lastEvaluation?.events.map(event => `<li><span>${escape(event.name)} ${event.rare ? '<b class="rare-mark">特殊</b>' : ''}</span><b>基本 ${event.points}</b></li>`).join('') ?? ''}</ul><details class="result-numbers"><summary>集計詳細</summary><p>内部カオス値 ${state.score.toLocaleString()}</p>${state.lastEvaluation ? renderWaveBreakdown(state.lastEvaluation) : ''}</details><p class="dialog-note">シード ${escape(state.seed)}</p><div class="modal-actions"><button class="secondary-button" data-action="catalog">図鑑を見る</button><button class="primary-button" data-action="same-seed">同じシードで再挑戦</button></div>`;
+    const chaos = summarizeChaos(state);
+    title = state.finished === 'terminal' ? '終着駅に到着' : state.finished === 'capacity' ? '混雑率200%で終了' : state.finished ? '運行結果' : '車内の状況';
+    body = `<div class="result-hero"><p class="eyebrow">${escape(chaos.label)}</p><strong>${chaos.total}<small>件のトラブル</small></strong><p>${state.station + 1}駅目 · ${stations[state.station]}</p></div><div class="result-stats"><div><b>${chaos.types}</b>種類</div><div><b>${chaos.sectors}<small>/4</small></b>広がった区画</div><div><b>${chaos.maxChain}</b>最大連鎖</div><div><b>${chaos.rare}</b>特殊トラブル</div></div>${chaos.mainCategory ? `<p class="dialog-note">多かったトラブル · ${escape(chaos.mainCategory)}</p>` : ''}<details class="run-history" open><summary>トラブル履歴 ${chaos.total}件</summary><ol class="event-log run-event-log">${state.eventLedger.map(event => `<li><span><small>${stations[event.station ?? 0]} · ${event.wave}連鎖</small><b>${escape(event.name)}</b></span>${event.rare ? '<b class="rare-mark">特殊</b>' : ''}</li>`).join('') || '<li>まだトラブルは起きていません。</li>'}</ol></details><details class="result-numbers"><summary>集計詳細</summary><p>内部カオス値 ${state.score.toLocaleString()} · 通常 ${chaos.events}件 · 特殊 ${chaos.rare}件</p></details><p class="dialog-note">シード ${escape(state.seed)}</p><div class="modal-actions"><button class="secondary-button" data-action="catalog">図鑑を見る</button>${state.finished ? '<button class="primary-button" data-action="same-seed">同じシードで再挑戦</button>' : '<button class="primary-button" data-action="close">車内へ戻る</button>'}</div>`;
   }
   return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header class="modal-header"><h2 id="modal-title">${title}</h2>${modal === 'upgrade' && !state.perk ? '' : '<button class="close-button" data-action="close" aria-label="閉じる">×</button>'}</header>${body}</section></div>`;
 }

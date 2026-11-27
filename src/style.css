@@ -2002,3 +2002,40 @@ input, select { background: #101b2a; color: #f1f7ff; border: 1px solid #6b839c; 
     100% { transform: translateX(0) skewX(0); opacity: 1; }
   }
 }
+
+/* One compact run summary opens the complete history. */
+.run-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.chaos-overview { flex: 1 1 100%; min-width: 0; padding: 0; text-align: left; }
+.chaos-level { display: block; color: #c5d7e9; font-size: 12px; }
+.chaos-overview strong { display: block; font-size: 22px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chaos-overview small { font-size: 11px; margin-left: 2px; }
+.chaos-overview i { color: var(--muted); font-size: 12px; font-style: normal; font-weight: 400; }
+.run-status .acquired-perk { margin: 0; }
+.acquired-buffs { margin-top: 14px; border-top: 1px solid var(--line); }
+.acquired-buffs > summary, .run-history > summary, .result-numbers > summary { min-height: 44px; align-content: center; cursor: pointer; color: #c5d7e9; font-size: 12px; }
+.acquired-buffs ul { list-style: none; margin: 0; padding: 0; }
+.acquired-buffs li { padding: 9px 0; border-top: 1px solid var(--line); }
+.acquired-buffs li strong, .acquired-buffs li span { display: block; font-size: 12px; }
+.acquired-buffs li span { margin-top: 4px; color: var(--muted); }
+.reaction-detail { color: #f1ce88; margin-left: 6px; }
+.reaction-detail::before { content: '●'; margin-right: 4px; font-size: 8px; }
+.reaction-dot { fill: #f1ce88; stroke: #112034; stroke-width: 14px; pointer-events: none; }
+.reaction-property dd { color: #f1ce88; }
+.run-event-log { margin-top: 0; }
+.run-event-log li > span > small, .run-event-log li > span > b { display: block; }
+.run-event-log li > span > small { margin-bottom: 4px; color: var(--muted); font-size: 11px; }
+.run-event-log li > span > b { font-size: 13px; font-weight: 650; }
+.result-stats b small { font-size: 13px; }
+.sound-controls select { max-width: 65%; padding: 7px 10px; }
+.sound-controls .dialog-note { margin: -10px 0 0; }
+@media (max-width: 760px) {
+  .chaos-level { font-size: 11px; }
+  .chaos-overview strong { font-size: 15px; }
+  .chaos-overview small, .chaos-overview i { font-size: 10px; }
+  .passenger-more:has(.reaction-detail) > summary > .detail-label { display: none; }
+  .passenger-more .reaction-detail { margin: 0; white-space: nowrap; }
+  .passenger-more[open] > summary > .detail-label { display: inline; margin-right: 6px; }
+}
+.station-strip div > .station-profile { color: #f1ce88; font-size: 12px; line-height: 1.2; white-space: nowrap; }
+
+.result-hero > strong > small { display: block; font-size: 16px; line-height: 1.4; font-weight: 600; }

@@ -8,7 +8,7 @@ import {
 } from "../src/game/events.ts";
 import { rareCandidates, selectRare } from "../src/game/rare.ts";
 import { eventDefinitions } from "../src/game/catalog.ts";
-import { createGame, evaluate, allocatePassenger, cellById, getCellUsage, getSpaceCapacity } from "../src/game/index.ts";
+import { createGame, evaluate, allocatePassenger, adjacent, cells, cellById, getCellUsage, getSpaceCapacity } from "../src/game/index.ts";
 import type { Passenger, TroubleEvent } from "../src/game/types.ts";
 
 let serial = 0;
@@ -221,8 +221,6 @@ for (const [type, build] of Object.entries(fixtures)) {
       candidates,
       new Set(),
       new Set(),
-      new Map(),
-      20,
     );
     assert.ok(
       selected.some((event) => event.type === type),
@@ -256,19 +254,19 @@ test("selection canonical keys, participant budgets and integer wave scoring", (
     candidate.id,
   );
   assert.equal(
-    selectNormal([candidate], new Set([candidate.id]), new Set(), new Map(), 20)
+    selectNormal([candidate], new Set([candidate.id]), new Set())
       .length,
     0,
   );
   assert.equal(
-    selectNormal([candidate], new Set(), new Set([people[0].id]), new Map(), 20)
+    selectNormal([candidate], new Set(), new Set([people[0].id]))
       .length,
     0,
   );
   assert.equal(
-    selectNormal([candidate], new Set(), new Set(), new Map([["N01", 2]]), 20)
+    selectNormal([candidate], new Set(), new Set())
       .length,
-    0,
+    1,
   );
   assert.equal(waveScore([candidate], 1), 20);
   assert.equal(
@@ -281,6 +279,45 @@ test("selection canonical keys, participant budgets and integer wave scoring", (
     ),
     187,
   );
+});
+
+test("selection accepts more than twenty independent events of the same type without relaxing collisions", () => {
+  const candidates = Array.from({ length: 25 }, (_, index) => ({
+    ...candidateEvent("N01", fixtures.N01(), 1),
+    id: "independent-" + index, participants: ["a-" + index, "b-" + index],
+  }));
+  const paid = new Set<string>();
+  const accepted = selectNormal([...candidates, { ...candidates[0], id: "collision" }, candidates[1]], paid, new Set());
+  assert.equal(accepted.length, 25);
+  assert.equal(paid.size, 25);
+  assert.equal(new Set(accepted.flatMap(event => event.participants)).size, 50);
+  assert.equal(selectNormal(accepted, paid, new Set()).length, 0);
+});
+
+test("large legal impossible histories reject rare events before enumerating combinations", () => {
+  const spots = cells.filter(cell => cell.kind === "standing");
+  const people = spots.map(cell => p(cell.id, { species: "働人", age: 40, luggage: false,
+    belongings: "none", bodySpace: 1, boardedAt: 3 }));
+  const pairs: Passenger[][] = [];
+  for (let i = 0; i < spots.length; i++) {
+    for (let j = i + 1; j < spots.length; j++) {
+      if (spots[i].row === spots[j].row && adjacent(spots[i].id, spots[j].id)) pairs.push([people[i], people[j]]);
+    }
+  }
+  const history = pairs.slice(0, 50).map((pair, i) => candidateEvent("N01", pair, i === 49 ? 1 : -1));
+  assert.equal(history.length, 50);
+  const used = new Set<string>();
+  const disjoint = pairs.filter(pair => {
+    if (pair.some(person => used.has(person.id))) return false;
+    pair.forEach(person => used.add(person.id));
+    return true;
+  }).map(pair => candidateEvent("N01", pair, 1));
+  assert.ok(disjoint.length >= 20);
+  const started = performance.now();
+  assert.deepEqual(rareCandidates(people, history, 1, 3), []);
+  assert.deepEqual(rareCandidates(people, disjoint, 1, 3), []);
+  assert.deepEqual(rareCandidates(people, history, 2, 3), [], "no current event cannot cause a rare event");
+  assert.ok(performance.now() - started < 1000, "impossible histories must not exhaustively search up to five-event combinations");
 });
 
 export { fixtures, p };
@@ -434,8 +471,6 @@ for (const [type, build] of Object.entries(rareFixtures)) {
       ),
       new Set(),
       new Set(),
-      new Map(),
-      20,
     );
     for (const event of fixture.events)
       assert.ok(

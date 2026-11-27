@@ -14,6 +14,50 @@ export function seededRandom(seed: string): () => number {
     return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+const stationProfiles = [
+  { id: "commute", name: "通勤の波", description: "画面を見ながら乗ってくる人が多い" },
+  { id: "luggage", name: "大きな荷物", description: "荷物を抱えた乗客が多い" },
+  { id: "quiet", name: "静かな乗車", description: "読書する人が多く、音は控えめ" },
+  { id: "groups", name: "同行客", description: "一緒に乗ってくる話し相手が多い" },
+] as const;
+
+export function stationProfile(seed: string, station: number) {
+  return stationProfiles[Math.floor(seededRandom(`${seed}:station-profile:${station}`)() * stationProfiles.length)];
+}
+
+function applyStationProfile(seed: string, station: number, people: Passenger[]): void {
+  const profile = stationProfile(seed, station);
+  const random = seededRandom(`${seed}:station-details:${station}`);
+  for (const person of people) {
+    if (profile.id === "commute" && person.attention !== "asleep" && random() < 0.7) {
+      person.activity = "screen";
+      person.attention = "absorbed";
+    } else if (profile.id === "luggage" && !person.luggage && random() < 0.7) {
+      person.belongings = (["backpack", "hand", "wheeled"] as const)[Math.floor(random() * 3)];
+      person.luggage = true;
+    } else if (profile.id === "quiet") {
+      person.audio = "quiet";
+      if (person.attention !== "asleep") {
+        if (random() < 0.7) person.activity = "read";
+        else if (person.activity === "call" || person.activity === "talk") person.activity = "none";
+        person.attention = "aware";
+      }
+    }
+  }
+  if (profile.id === "groups") {
+    const eligible = people.filter(person => !person.group && person.attention !== "asleep");
+    for (let i = 0; i + 1 < eligible.length; i += 3) {
+      if (random() >= 0.75) continue;
+      for (const person of eligible.slice(i, i + 3)) {
+        person.group = `profile-${station}-${i}`;
+        person.activity = "talk";
+        person.attention = "aware";
+      }
+    }
+  }
+}
+
 export function generateSchedule(seed: string): Passenger[][] {
   const random = seededRandom(seed);
   const pick = <T>(values: T[]): T =>
@@ -114,6 +158,7 @@ export function generateSchedule(seed: string): Passenger[][] {
         people[i].destination = destination;
       }
     }
+    applyStationProfile(seed, station, people);
     roster.push(people);
   }
   return roster;

@@ -23,8 +23,8 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
   const passengers = state.passengers.map((person) => ({ ...person }));
   const standing = (person: Passenger) =>
     cellById.get(person.cellId!)!.kind !== "seat";
-  const inPerkScope = (cell: (typeof cells)[number]) =>
-    state.perk?.scope === "global" || state.perk?.sector === sectorAt(cell.x + cell.width / 2);
+  const buffsAt = (cell: (typeof cells)[number]) => state.buffs.filter(buff =>
+    buff.scope === "global" || buff.sector === sectorAt(cell.x + cell.width / 2));
   const hasStandingNeed = passengers.some(
     (person) => standing(person) && person.sensitivity >= 4,
   );
@@ -64,16 +64,18 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
       (cell.kind === "door" && occupants === 3 ? 8 : 0) +
       luggageNeighbors * 2 +
       (cell.priority && person.sensitivity < 4 && hasStandingNeed ? 2 : 0) + relationBurden;
-    const perk = state.perk?.kind === "buff" && inPerkScope(cell) ? state.perk : undefined;
-    const receivesBuff = perk?.effect === "quiet" && nearby.length <= 1
-      || perk?.effect === "seats" && cell.kind === "seat"
-      || perk?.effect === "luggage" && (person.luggage || nearby.some(other => other.luggage))
-      || perk?.effect === "switch" && standing(person);
-    const perkBurden = receivesBuff ? perk!.strength! : 0;
+    const buffs = buffsAt(cell);
+    const receivesBuff = buffs.filter(buff => buff.effect === "quiet" && nearby.length <= 1
+      || buff.effect === "seats" && cell.kind === "seat"
+      || buff.effect === "luggage" && (person.luggage || nearby.some(other => other.luggage))
+      || buff.effect === "switch" && standing(person)
+      || buff.effect === "noise" && (person.activity === "call" || person.activity === "talk" || person.audio === "leak"));
+    const perkBurden = Math.min(48, receivesBuff.reduce((sum, buff) => sum + buff.strength!, 0));
     const aura = nearby.filter(other => other.special?.skill === "aura")
       .reduce((sum, other) => sum + rank(other) * 8, 0);
-    const effectiveRecovery = perk?.effect === "seats" && cell.kind === "seat"
-      ? perk.scope === "global" ? recovery / 2 : 0 : recovery;
+    const seatBuffs = buffs.filter(buff => buff.effect === "seats" && cell.kind === "seat");
+    const effectiveRecovery = seatBuffs.some(buff => buff.scope === "sector") ? 0
+      : seatBuffs.length ? recovery / 2 : recovery;
     person.stress = Math.min(
       100,
       Math.max(0, person.stress - effectiveRecovery) + burden + perkBurden + aura,
@@ -87,16 +89,8 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
   const fired = new Set(sources);
   const paid = new Set(state.scoredEvents);
   const prior = affected ? state.stationEvents ?? [] : [];
-  const used = new Set<string>(prior.filter(event => !event.rare).flatMap(event => event.participants));
-  const counts = new Map<string, number>();
-  for (const event of prior.filter(event => !event.rare)) counts.set(event.type, (counts.get(event.type) ?? 0) + 1);
   const normalHistory: TroubleEvent[] = [];
   const positions = new Map(passengers.map(person => [person.id, person.cellId]));
-  const sectorCounts = [0, 0, 0, 0];
-  for (const event of prior.filter(event => !event.rare)) {
-    const sector = event.sector ?? troubleSector(event.participants, positions);
-    if (sector >= 0) sectorCounts[sector]++;
-  }
   const rareHistory: TroubleEvent[] = [];
   const priorNormal = prior.filter(event => !event.rare);
   const priorRare = prior.filter(event => event.rare);
@@ -135,13 +129,14 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
         if (sender.special?.skill === "relay") return sum + 4 * rank(sender);
         return sum;
       }, 0);
-      const resonant = state.perk?.effect === "bridge" && inPerkScope(target) && target.kind === "standing"
-        ? senders.filter(sender => {
+      const resonant = target.kind === "standing" ? senders.filter(sender => {
           const origin = cellById.get(sender.cellId!)!;
           return origin.kind === "standing" && origin.row !== target.row;
         }).length
         : 0;
-      const after = Math.min(100, person.stress + senders.length * 25 + resonant * (state.perk?.strength ?? 0) + specialBoost);
+      const bridgeBonus = Math.min(35, resonant * buffsAt(target)
+        .filter(buff => buff.effect === "bridge").reduce((sum, buff) => sum + buff.strength!, 0));
+      const after = Math.min(100, person.stress + senders.length * 25 + bridgeBonus + specialBoost);
       if (person.stress < 80 && after >= 80) triggered.push(person.id);
       return after;
     });
@@ -151,9 +146,7 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
     const normal = selectNormal(
       normalCandidates(passengers, new Set(triggered), index, state.station),
       paid,
-      used,
-      counts,
-      20 - priorNormal.length - normalHistory.length,
+      new Set(),
     );
     normal.forEach(event => { event.sector = troubleSector(event.participants, positions); });
     normalHistory.push(...normal);
@@ -170,14 +163,8 @@ export function evaluate(state: GameState, affected?: Set<string>): Evaluation {
     );
     rare.forEach(event => { event.sector = troubleSector(event.participants, positions); });
     rareHistory.push(...rare);
-    // Later trouble at the same location has diminishing value within the ride.
-    const scoringEvents = normal.map(event => {
-      const sector = event.sector ?? troubleSector(event.participants, positions);
-      if (sector < 0 || ++sectorCounts[sector] <= 2) return event;
-      return { ...event, points: Math.floor(event.points * 0.4) };
-    });
     const score =
-      waveScore(scoringEvents, index) +
+      waveScore(normal, index) +
       rare.reduce((sum, event) => sum + event.points, 0);
     waves.push({
       index,

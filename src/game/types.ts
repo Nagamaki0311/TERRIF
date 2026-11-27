@@ -17,6 +17,7 @@ export interface Cell {
 }
 export interface Passenger {
   id: string;
+  lastReaction?: string;
   special?: {
     name: string;
     rarity: import("./perks.ts").Rarity;
@@ -48,6 +49,7 @@ export interface EventDefinition {
   rare: boolean;
 }
 export interface TroubleEvent {
+  station?: number;
   sector?: number;
   id: string;
   type: string;
@@ -85,6 +87,9 @@ export interface GameState extends Snapshot {
   seed: string;
   objective: number | null;
   perk?: PerkOffer;
+  buffs: PerkOffer[];
+  eventLedger: TroubleEvent[];
+  maxChain: number;
   stationEvents?: TroubleEvent[];
   stationSectors?: number[];
   objectiveFulfilled?: boolean;

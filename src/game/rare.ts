@@ -46,6 +46,8 @@ export function rareCandidates(
       (id) => byId.get(id)!,
     );
   const sameWave = history.filter((event) => event.wave === wave);
+  // Every rare event needs a source from the current wave.
+  if (!sameWave.length) return [];
   const types = (events: TroubleEvent[]) =>
     new Set(events.map((event) => event.type));
   const containsTypes = (events: TroubleEvent[], required: string[]) =>
@@ -53,6 +55,18 @@ export function rareCandidates(
   const includesCurrent = (events: TroubleEvent[]) =>
     events.some((event) => event.wave === wave);
   const cell = (person: Passenger) => cellById.get(person.cellId!)!;
+  const historyMembers = members(history);
+  const waveMembers = members(sameWave);
+  const waveTypes = types(sameWave);
+  const historyTypes = types(history);
+  const doorHistory = history.filter(event => members([event]).some(person => cell(person).row === 3 && cell(person).kind === "door"));
+  const audioHistory = history.filter(event => ["N19", "N20", "N21"].includes(event.type));
+  const audioWaves = audioHistory.filter(event => event.wave > 0).map(event => event.wave);
+  const boardingHistory = history.filter(event => ["N30", "N32", "N37"].includes(event.type));
+  const southernDoors = new Set(historyMembers
+    .filter(person => cell(person).row === 3 && cell(person).kind === "door")
+    .map(person => cell(person).door));
+  const rows = new Set(waveMembers.map(person => cell(person).row));
   const result: TroubleEvent[] = [];
   function add(type: string, source: TroubleEvent[] | null): void {
     if (!source || !includesCurrent(source)) return;
@@ -67,7 +81,7 @@ export function rareCandidates(
   }
   add(
     "S01",
-    smallestGroup(
+    waveTypes.has("N09") && waveTypes.has("N46") ? smallestGroup(
       sameWave.filter((event) => event.type === "N09" || event.type === "N46"),
       2,
       2,
@@ -81,16 +95,12 @@ export function rareCandidates(
           members([right]).some((p) => cell(p).x >= 17430)
         );
       },
-    ),
+    ) : null,
   );
   add(
     "S02",
-    smallestGroup(
-      history.filter((event) =>
-        members([event]).some(
-          (p) => cell(p).row === 3 && cell(p).kind === "door",
-        ),
-      ),
+    southernDoors.size === 4 && types(doorHistory).size >= 4 && includesCurrent(doorHistory) ? smallestGroup(
+      doorHistory,
       4,
       4,
       (group) => {
@@ -103,21 +113,22 @@ export function rareCandidates(
           doors.size === 4 && types(group).size >= 4 && includesCurrent(group)
         );
       },
-    ),
+    ) : null,
   );
   add(
     "S03",
-    smallestGroup(
+    ["N11", "N12", "N13"].every(type => waveTypes.has(type)) ? smallestGroup(
       sameWave.filter((event) => ["N11", "N12", "N13"].includes(event.type)),
       3,
       3,
       (group) => containsTypes(group, ["N11", "N12", "N13"]),
-    ),
+    ) : null,
   );
   add(
     "S04",
-    smallestGroup(
-      history.filter((event) => ["N19", "N20", "N21"].includes(event.type)),
+    ["N19", "N20", "N21"].every(type => historyTypes.has(type))
+      && includesCurrent(audioHistory) && new Set(audioWaves).size < audioWaves.length ? smallestGroup(
+      audioHistory,
       3,
       3,
       (group) => {
@@ -130,53 +141,56 @@ export function rareCandidates(
           includesCurrent(group)
         );
       },
-    ),
+    ) : null,
   );
   add(
     "S05",
-    smallestGroup(
+    new Set(waveMembers.map(person => person.species)).size === 5 ? smallestGroup(
       sameWave,
       3,
       5,
       (group) => new Set(members(group).map((p) => p.species)).size === 5,
-    ),
+    ) : null,
   );
   add(
     "S06",
-    smallestGroup(sameWave, 3, 3, (group) => {
+    waveMembers.some(person => person.age <= 20) && waveMembers.some(person => person.age === 40 || person.age === 50)
+      && waveMembers.some(person => person.age >= 80) ? smallestGroup(sameWave, 3, 3, (group) => {
       const ages = members(group).map((p) => p.age);
       return (
         ages.some((age) => age <= 20) &&
         ages.some((age) => age === 40 || age === 50) &&
         ages.some((age) => age >= 80)
       );
-    }),
+    }) : null,
   );
   if (station >= 2 && station <= 5) {
     add(
       "S07",
-      smallestGroup(
-        history.filter((event) => ["N30", "N32", "N37"].includes(event.type)),
+      ["N30", "N32", "N37"].every(type => historyTypes.has(type)) && includesCurrent(boardingHistory) ? smallestGroup(
+        boardingHistory,
         3,
         3,
         (group) =>
           containsTypes(group, ["N30", "N32", "N37"]) && includesCurrent(group),
-      ),
+      ) : null,
     );
   }
   add(
     "S08",
-    smallestGroup(
+    ["N10", "N25", "N49"].every(type => waveTypes.has(type)) ? smallestGroup(
       sameWave.filter((event) => ["N10", "N25", "N49"].includes(event.type)),
       3,
       3,
       (group) => containsTypes(group, ["N10", "N25", "N49"]),
-    ),
+    ) : null,
   );
   if (station >= 3 && station <= 5) {
     add(
       "S09",
-      smallestGroup(history, 3, 5, (group) => {
+      historyTypes.size >= 3 && history.some(event => event.wave >= 3)
+        && historyMembers.some(person => person.boardedAt <= 1)
+        && historyMembers.some(person => person.boardedAt === station) ? smallestGroup(history, 3, 5, (group) => {
         const passengers = members(group);
         return (
           types(group).size >= 3 &&
@@ -185,12 +199,14 @@ export function rareCandidates(
           passengers.some((p) => p.boardedAt <= 1) &&
           passengers.some((p) => p.boardedAt === station)
         );
-      }),
+      }) : null,
     );
   }
   add(
     "S10",
-    smallestGroup(sameWave, 5, 5, (group) => {
+    waveTypes.size >= 5 && rows.has(1) && rows.has(2) && (rows.has(0) || rows.has(3))
+      && sameWave.filter(event => members([event]).some(person => cell(person).kind === "door")).length >= 2
+      ? smallestGroup(sameWave, 5, 5, (group) => {
       const rows = new Set(members(group).map((p) => cell(p).row));
       return (
         types(group).size === 5 &&
@@ -201,7 +217,7 @@ export function rareCandidates(
           members([event]).some((p) => cell(p).kind === "door"),
         ).length >= 2
       );
-    }),
+    }) : null,
   );
   return result;
 }
