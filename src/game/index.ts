@@ -95,7 +95,7 @@ export function canPlace(
 export { perkChoices, sectorAt } from "./perks.ts";
 
 export function choosePerk(state: GameState, id: string): GameState {
-  if (state.finished || state.perk) return state;
+  if (state.station === 0 || state.finished || state.perk) return state;
   const perk = perkChoices(state.seed, state.station, state.buffs).find(offer => offer.id === id);
   if (!perk) return state;
   const extraMoves = perk.effect === "switch" ? perk.scope === "global" ? 1 : 2 : 0;

@@ -49,6 +49,10 @@ function state(people: Passenger[]): GameState {
   return { ...createGame("fixture"), passengers: people, waiting: [] };
 }
 
+function phaseTwoGame(seed: string): GameState {
+  return depart({ ...createGame(seed), waiting: [] });
+}
+
 
 function emptyGame(seed: string): GameState {
   const game = createGame(seed);
@@ -332,15 +336,53 @@ test("route objectives are reproducible and reward distinct trouble areas", asyn
     { routeBonus: 0, objectiveBonus: 0 });
 });
 
+test("the first phase has no upgrades and the second begins persistent single-pick upgrades", async () => {
+  const { choosePerk, perkChoices } = await import("../src/game/index.ts");
+  let game = createGame("no-initial-upgrades");
+  const laterChoices = perkChoices(game.seed, 1);
+  assert.equal(game.station, 0);
+  assert.deepEqual(perkChoices(game.seed, 0), []);
+  assert.deepEqual(game.buffs, []);
+  assert.equal(game.perk, undefined);
+  assert.ok(game.passengers.every(person => !person.special));
+  for (const offer of laterChoices) assert.equal(choosePerk(game, offer.id), game);
+  while (game.waiting.length) {
+    const rider = game.waiting.find(person => cells.some(cell => canPlace(game, person.id, cell.id)))!;
+    assert.ok(rider, "first-phase passengers can board without any upgrade");
+    const cell = cells.find(cell => canPlace(game, rider.id, cell.id))!;
+    const next = place(game, rider.id, cell.id);
+    assert.notEqual(next, game);
+    game = next;
+  }
+  assert.equal(game.perk, undefined);
+  game = depart(game);
+  assert.equal(game.station, 1);
+  assert.equal(game.finished, null);
+  const choices = perkChoices(game.seed, game.station, game.buffs);
+  assert.equal(choices.length, 3);
+  assert.equal(choices[0].kind, "special");
+  assert.equal(choices[1].scope, "sector");
+  assert.equal(choices[2].scope, "global");
+  game = choosePerk(game, choices[2].id);
+  assert.equal(game.buffs.length, 1);
+  assert.equal(game.perk?.id, choices[2].id);
+  assert.equal(choosePerk(game, choices[1].id), game);
+  const acquired = game.buffs;
+  game = depart({ ...game, waiting: [] });
+  assert.equal(game.station, 2);
+  assert.deepEqual(game.buffs, acquired);
+  assert.equal(game.perk, undefined);
+});
+
 test("station perks are seeded, single-pick, and can change the first ignition", async () => {
   const { choosePerk, perkChoices, sectorAt } = await import("../src/game/index.ts");
   const seeds = Array.from({ length: 30 }, (_, i) => "perk-" + i);
-  const offers = seeds.flatMap(seed => perkChoices(seed, 0));
+  const offers = seeds.flatMap(seed => perkChoices(seed, 1));
   assert.equal(new Set(offers.filter(offer => offer.kind === "buff").map(offer => offer.effect)).size, 6);
-  const seed = seeds.find(value => perkChoices(value, 0).some(offer => offer.id === "quiet"))!;
-  const game = createGame(seed);
-  const choices = perkChoices(seed, 0);
-  assert.deepEqual(choices, perkChoices(seed, 0));
+  const seed = seeds.find(value => perkChoices(value, 1).some(offer => offer.id === "quiet"))!;
+  const game = phaseTwoGame(seed);
+  const choices = perkChoices(seed, 1);
+  assert.deepEqual(choices, perkChoices(seed, 1));
   assert.equal(new Set(choices.map(offer => offer.sector)).size, 3);
   const quiet = choices.find(offer => offer.id === "quiet")!;
   const chosen = choosePerk(game, quiet.id);
@@ -357,8 +399,8 @@ test("station perks are seeded, single-pick, and can change the first ignition",
 test("the repositioning perk survives undo without granting moves twice", async () => {
   const { choosePerk, perkChoices } = await import("../src/game/index.ts");
   const seed = Array.from({ length: 30 }, (_, i) => "moves-" + i)
-    .find(value => perkChoices(value, 0).some(offer => offer.id === "switch"))!;
-  const first = { ...createGame(seed), passengers: [person("mover", "r0-b0-0")] };
+    .find(value => perkChoices(value, 1).some(offer => offer.id === "switch"))!;
+  const first = { ...phaseTwoGame(seed), passengers: [person("mover", "r0-b0-0")] };
   const moved = move(first, "mover", "r0-b0-2");
   assert.equal(moved.movesLeft, 1);
   const picked = choosePerk(moved, "switch");
@@ -373,7 +415,7 @@ test("offers always contain one rarity-weighted special and two distinct buffs",
   const { perkChoices, choosePerk } = await import("../src/game/index.ts");
   const counts = { S: 0, SS: 0, SSS: 0 };
   for (let i = 0; i < 500; i++) {
-    const offers = perkChoices("rarity-" + i, i % 6);
+    const offers = perkChoices("rarity-" + i, 1 + i % 5);
     assert.equal(offers.filter(offer => offer.kind === "special").length, 1);
     assert.equal(offers.filter(offer => offer.kind === "buff").length, 2);
     assert.equal(offers[1].scope, "sector");
@@ -383,7 +425,7 @@ test("offers always contain one rarity-weighted special and two distinct buffs",
     counts[offers[0].rarity!]++;
   }
   assert.ok(counts.S > counts.SS && counts.SS > counts.SSS && counts.SSS > 0);
-  const initial = createGame("special-acquisition");
+  const initial = phaseTwoGame("special-acquisition");
   const offer = perkChoices(initial.seed, initial.station)[0];
   const acquired = choosePerk(initial, offer.id);
   assert.equal(acquired.waiting.length, initial.waiting.length + 1);
@@ -395,7 +437,7 @@ test("offers always contain one rarity-weighted special and two distinct buffs",
 test("regional buffs are stronger while global buffs reach distant passengers", async () => {
   const { perkChoices, sectorAt } = await import("../src/game/index.ts");
   for (const effect of ["quiet", "seats", "luggage", "switch"] as const) {
-    const offers = Array.from({ length: 100 }, (_, i) => perkChoices("scope-" + i, 0)).flat();
+    const offers = Array.from({ length: 100 }, (_, i) => perkChoices("scope-" + i, 1)).flat();
     const regional = offers.find(offer => offer.effect === effect && offer.scope === "sector")!;
     const global = offers.find(offer => offer.effect === effect && offer.scope === "global")!;
     assert.ok(regional.strength! > global.strength!);
@@ -417,7 +459,7 @@ test("regional buffs are stronger while global buffs reach distant passengers", 
 
 test("global bridge adds a smaller cross-aisle boost throughout the board", async () => {
   const { perkChoices, sectorAt } = await import("../src/game/index.ts");
-  const offers = Array.from({ length: 100 }, (_, i) => perkChoices("bridge-scope-" + i, 0)).flat();
+  const offers = Array.from({ length: 100 }, (_, i) => perkChoices("bridge-scope-" + i, 1)).flat();
   const regional = offers.find(offer => offer.effect === "bridge" && offer.scope === "sector")!;
   const global = offers.find(offer => offer.effect === "bridge" && offer.scope === "global")!;
   const target = cells.find(cell => cell.row === 2 && cell.kind === "standing"
@@ -442,8 +484,8 @@ test("global bridge adds a smaller cross-aisle boost throughout the board", asyn
 test("global repositioning grants one move once and creates no sector objective", async () => {
   const { perkChoices, choosePerk } = await import("../src/game/index.ts");
   const seed = Array.from({ length: 100 }, (_, i) => "global-moves-" + i)
-    .find(seed => perkChoices(seed, 0).some(offer => offer.id === "switch-global"))!;
-  const initial = createGame(seed);
+    .find(seed => perkChoices(seed, 1).some(offer => offer.id === "switch-global"))!;
+  const initial = phaseTwoGame(seed);
   const selected = choosePerk(initial, "switch-global");
   assert.equal(selected.movesLeft, initial.movesLeft + 1);
   assert.equal(selected.objective, null);
@@ -453,7 +495,7 @@ test("global repositioning grants one move once and creates no sector objective"
 test("a global buff preserves realtime locality instead of ticking every remote rider", async () => {
   const { perkChoices } = await import("../src/game/index.ts");
   const { evaluatePlacement } = await import("../src/game/evaluation.ts");
-  const global = Array.from({ length: 100 }, (_, i) => perkChoices("global-live-" + i, 0)).flat()
+  const global = Array.from({ length: 100 }, (_, i) => perkChoices("global-live-" + i, 1)).flat()
     .find(offer => offer.id === "quiet-global")!;
   const fixture = { ...state([
     person("placed", "r1-b0-0", { stress: 10 }),
@@ -603,13 +645,13 @@ test("seat trouble wakes and straightens its participant while preserving luggag
   assert.equal(game.lastEvaluation!.passengers.find(person => person.id === sleeper.id)!.attention, "asleep");
 });
 
-test("all six buff choices remain available, persistent and nonduplicating across a run", async () => {
+test("all five later buff choices remain available, persistent and nonduplicating across a run", async () => {
   const { perkChoices, choosePerk } = await import("../src/game/index.ts");
   const { buffKey } = await import("../src/game/perks.ts");
   for (const mode of ["sector", "global"] as const) {
     for (const seed of ["accumulate-0", "accumulate-1", "accumulate-2"]) {
-      let game = createGame(seed);
-      for (let phase = 0; phase < 6; phase++) {
+      let game = phaseTwoGame(seed);
+      for (let phase = 1; phase < 6; phase++) {
         const offers = perkChoices(seed, phase, game.buffs);
         assert.equal(offers.length, 3);
         assert.deepEqual(offers, perkChoices(seed, phase, game.buffs));
@@ -618,12 +660,12 @@ test("all six buff choices remain available, persistent and nonduplicating acros
         assert.equal(offers[2].scope, "global");
         for (const offer of offers.slice(1)) assert.ok(!game.buffs.some(buff => buffKey(buff) === buffKey(offer)));
         game = choosePerk(game, offers.find(offer => offer.scope === mode)!.id);
-        assert.equal(game.buffs.length, phase + 1);
+        assert.equal(game.buffs.length, phase);
         const before = game.buffs;
         game = depart({ ...game, waiting: [] });
         assert.deepEqual(game.buffs, before);
       }
-      assert.equal(new Set(game.buffs.map(buffKey)).size, 6);
+      assert.equal(new Set(game.buffs.map(buffKey)).size, 5);
     }
   }
 });
@@ -632,15 +674,15 @@ test("persistent buffs apply after departure, respect realtime locality and cap 
   const { perkChoices, choosePerk, sectorAt } = await import("../src/game/index.ts");
   const { evaluatePlacement } = await import("../src/game/evaluation.ts");
   const seed = Array.from({ length: 100 }, (_, i) => "persistent-" + i)
-    .find(seed => perkChoices(seed, 0).some(offer => offer.id === "quiet-global"))!;
-  let game = choosePerk(createGame(seed), "quiet-global");
+    .find(seed => perkChoices(seed, 1).some(offer => offer.id === "quiet-global"))!;
+  let game = choosePerk(phaseTwoGame(seed), "quiet-global");
   game = depart({ ...game, passengers: [], waiting: [] });
   const fixture = { ...game, passengers: [person("local", "r1-b1-1", { stress: 10 }), person("far", "r1-b4-1", { stress: 40 })] };
   assert.equal(fixture.perk, undefined);
   const result = evaluatePlacement(fixture, "local");
   assert.equal(result.passengers[0].stress, 20);
   assert.equal(result.passengers[1].stress, 40);
-  const offers = Array.from({ length: 200 }, (_, i) => perkChoices("cap-" + i, 0)).flat();
+  const offers = Array.from({ length: 200 }, (_, i) => perkChoices("cap-" + i, 1)).flat();
   const buffs = ["quiet", "noise", "switch"].flatMap(effect => [
     offers.find(buff => buff.effect === effect && buff.scope === "global")!,
     { ...offers.find(buff => buff.effect === effect && buff.scope === "sector")!, sector: sectorAt(cellById.get("r1-b1-1")!.x + 230) },
@@ -667,9 +709,9 @@ test("boarding-only special skills create distinct actions and groups without br
   for (const skill of ["gather", "snack"] as const) {
     for (const rarity of ["S", "SSS"] as const) {
       const seed = Array.from({ length: 500 }, (_, i) => "role-" + i)
-        .find(seed => perkChoices(seed, 0)[0].skill === skill && perkChoices(seed, 0)[0].rarity === rarity)!;
+        .find(seed => perkChoices(seed, 1)[0].skill === skill && perkChoices(seed, 1)[0].rarity === rarity)!;
       assert.ok(seed, `${skill}/${rarity} is reachable`);
-      const template = choosePerk(createGame(seed), perkChoices(seed, 0)[0].id).waiting[0];
+      const template = choosePerk(phaseTwoGame(seed), perkChoices(seed, 1)[0].id).waiting[0];
       assert.equal(template.activity, skill === "gather" ? "talk" : "food");
       const targets = [
         person("left", "r1-b1-1", { stress: 0, activity: "none", luggage: true, belongings: "hand", luggageCellId: "r2-b1-1" }),
@@ -678,7 +720,7 @@ test("boarding-only special skills create distinct actions and groups without br
         person("protected", "r0-b1-2", { stress: 0, attention: "asleep", group: "existing-party" }),
         person("remote", "r1-b4-1", { stress: 0 }),
       ];
-      const initial = { ...state(targets), waiting: [{ ...template, stress: 0 }] };
+      const initial = { ...phaseTwoGame(seed), passengers: targets, waiting: [{ ...template, stress: 0 }] };
       const placed = place(initial, template.id, "r1-b1-2");
       const count = rarity === "SSS" ? 3 : 1;
       const changed = placed.passengers.filter(person => person.lastReaction === (skill === "gather" ? "話の輪に加わった" : "おやつを受け取った"));

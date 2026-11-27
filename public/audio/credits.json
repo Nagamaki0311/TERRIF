@@ -6,7 +6,7 @@
   "sourceSampleRate": 22050,
   "sourceBitDepth": 16,
   "music": "Sample-style reed lead, plucked arpeggios, soft string pad, bass, and drums. Original notes and arrangement; circular short-room delays.",
-  "effects": "Original layered damped wood and metal resonators, body impacts, rising harmonic blooms, deterministic transients, and short stereo room tails. No external samples.",
+  "effects": "Original layered damped wood and metal resonators, body impacts, rising harmonic blooms, filtered pneumatic airflow, mechanical UI clicks, and short stereo room tails. No external samples.",
   "files": [
     "night-express.ogg",
     "place.wav",
@@ -16,16 +16,22 @@
     "burst.wav",
     "cutin.wav",
     "rare.wav",
-    "finish.wav"
+    "finish.wav",
+    "ui-select.wav",
+    "ui-slide.wav",
+    "ui-confirm.wav",
+    "ui-cancel.wav",
+    "ui-invalid.wav",
+    "ui-depart.wav"
   ],
   "validation": "PCM source peak 0.82, RMS 0.1441, zero source loop-edge difference. Subjective sound quality still requires listening.",
-  "effectsGenerator": "scripts/generate-effects.py; fixed seed 270311; 22050 Hz / stereo / 16-bit PCM",
+  "effectsGenerator": "scripts/generate-effects.py; fixed seeds 270311 (events) and 270312 (air and UI); 22050 Hz / stereo / 16-bit PCM",
   "effectsValidation": [
     {
       "file": "place.wav",
-      "seconds": 0.32,
+      "seconds": 0.58,
       "peak": 0.76,
-      "rms": 0.1346
+      "rms": 0.1222
     },
     {
       "file": "reaction.wav",
@@ -68,6 +74,42 @@
       "seconds": 1.65,
       "peak": 0.76,
       "rms": 0.1296
+    },
+    {
+      "file": "ui-select.wav",
+      "seconds": 0.14,
+      "peak": 0.76,
+      "rms": 0.1436
+    },
+    {
+      "file": "ui-slide.wav",
+      "seconds": 0.22,
+      "peak": 0.76,
+      "rms": 0.1347
+    },
+    {
+      "file": "ui-confirm.wav",
+      "seconds": 0.32,
+      "peak": 0.76,
+      "rms": 0.1254
+    },
+    {
+      "file": "ui-cancel.wav",
+      "seconds": 0.2,
+      "peak": 0.76,
+      "rms": 0.1689
+    },
+    {
+      "file": "ui-invalid.wav",
+      "seconds": 0.28,
+      "peak": 0.76,
+      "rms": 0.151
+    },
+    {
+      "file": "ui-depart.wav",
+      "seconds": 0.72,
+      "peak": 0.76,
+      "rms": 0.0799
     }
   ]
 }

@@ -42,6 +42,7 @@ export function buffKey(buff: PerkOffer): string {
 }
 
 export function perkChoices(seed: string, station: number, acquired: readonly PerkOffer[] = []): PerkOffer[] {
+  if (station === 0) return [];
   const random = seededRandom(seed + ":perks:" + station);
   const roll = random();
   const rarity: Rarity = roll < 0.7 ? "S" : roll < 0.95 ? "SS" : "SSS";
@@ -73,7 +74,7 @@ export function perkChoices(seed: string, station: number, acquired: readonly Pe
   const regional = regionalPool[Math.floor(random() * regionalPool.length)];
   const globalPool = perks.map(template => makeBuff(template, true, null))
     .filter(buff => !owned.has(buffKey(buff)));
-  // Six effects cover all six choices even if every prior choice was a global buff.
+  // Six effects cover the five later stops even if every prior pick was a global buff.
   const distinctGlobals = globalPool.filter(buff => buff.effect !== regional?.effect);
   const candidates = distinctGlobals.length ? distinctGlobals : globalPool;
   const global = candidates[Math.floor(random() * candidates.length)];

@@ -1,5 +1,6 @@
 import './style.css';
 import { GameAudio } from './audio.ts';
+import type { AudioOperation } from './audio.ts';
 import { createGame, place, move, undo, depart, choosePerk, perkChoices, sectorAt, exitPath, canPlace, adjacent, cells, stations, eventDefinitions, getCellUsage, getSpaceCapacity, capacity, summarizeChaos, stationProfile } from './game/index.ts';
 import type { Cell, Evaluation, GameState, Passenger, Species, Wave } from './game/types.ts';
 
@@ -16,7 +17,7 @@ let selectedId: string | null = state.waiting[0]?.id ?? null;
 let hoveredCell: string | null = null;
 const boarding = new Map<string, { path: string; started: number; duration: number }>();
 let zoom = window.matchMedia('(max-width: 760px)').matches;
-let modal: 'help' | 'catalog' | 'sound' | 'restart' | 'result' | 'upgrade' | null = 'upgrade';
+let modal: 'help' | 'catalog' | 'sound' | 'restart' | 'result' | 'upgrade' | null = null;
 let search = '';
 let catalogFilter = 'all';
 let animating = false;
@@ -82,6 +83,10 @@ function notify(message: string): void {
 function enableAudio(): void {
   void audio.unlock().catch(() => notify('音源の読み込みに失敗しました。音設定から再試行できます。'));
 }
+function playOperation(kind: AudioOperation): void {
+  enableAudio();
+  audio.playOperation(kind);
+}
 function currentLabel(): string {
   return state.finished ? '運行終了' : `${state.station + 1} / ${stations.length}`;
 }
@@ -127,7 +132,7 @@ function render(): void {
     </div><aside class="sidebar" aria-label="選択中の乗客と区間目標">
       <section class="selection-panel" aria-label="選択中の乗客">${person ? renderPersonDetail(person) : '<h2 class="selected-name">乗客を選択</h2><p class="muted">選択した乗客の属性を表示します。</p>'}</section>
       <section class="run-status"><button class="chaos-overview" data-action="result" aria-label="${escape(chaos.label)}、${chaos.total}件、${chaos.types}種類、4区画中${chaos.sectors}区画。トラブル履歴を開く"><span class="chaos-level">${escape(chaos.label)}</span><strong>${chaos.total}<small>件</small> <i>/</i> ${chaos.types}<small>種</small> <i>/</i> ${chaos.sectors}<small>/4区画</small></strong></button>${state.perk ? `<button data-action="upgrade" class="acquired-perk">強化一覧</button>` : ''}</section>
-      <div class="sidebar-actions"><button class="depart-button" data-action="depart" ${state.waiting.length || animating || evaluationQueue.length || state.finished || !state.perk ? 'disabled' : ''}><span>${state.finished ? '運行終了' : '発車する'}</span><b aria-hidden="true">→</b></button>${state.finished ? '<button class="result-button" data-action="result">運行結果を見る</button>' : ''}</div>
+      <div class="sidebar-actions"><button class="depart-button" data-action="depart" ${state.waiting.length || animating || evaluationQueue.length || state.finished || (state.station > 0 && !state.perk) ? 'disabled' : ''}><span>${state.finished ? '運行終了' : '発車する'}</span><b aria-hidden="true">→</b></button>${state.finished ? '<button class="result-button" data-action="result">運行結果を見る</button>' : ''}</div>
       <section class="forecast"><h3>次駅の乗車</h3><strong>${state.schedule[Math.min(stations.length - 1, state.station + 1)].length}<small>人</small></strong><p>${nextComposition()}</p></section>
     </aside></div>
     <footer class="footer"><span>シード <b>${escape(state.seed)}</b></span><span>配置時に反応が確定します</span></footer>
@@ -294,7 +299,7 @@ function bindEvents(): void {
     if (state.finished || modal === 'upgrade') return;
     selectedId = element.dataset.person!;
     hoveredCell = null;
-    enableAudio();
+    playOperation('select');
     render();
   }));
   app.querySelectorAll<SVGGElement>('[data-cell]').forEach(element => {
@@ -302,19 +307,21 @@ function bindEvents(): void {
     element.addEventListener('click', () => chooseCell(element.dataset.cell!));
     element.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseCell(element.dataset.cell!); }
-      if (event.key === 'Escape') { selectedId = null; render(); }
+      if (event.key === 'Escape' && !modal && selectedId) { event.preventDefault(); event.stopPropagation(); selectedId = null; playOperation('cancel'); render(); }
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); moveFocus(element.dataset.cell!, event.key); }
     });
   });
+  app.querySelectorAll<HTMLElement>('summary').forEach(summary => summary.addEventListener('click', () => playOperation(summary.parentElement?.hasAttribute('open') ? 'cancel' : 'navigate')));
   const searchInput = app.querySelector<HTMLInputElement>('#catalog-search');
   searchInput?.addEventListener('input', () => { search = searchInput.value; updateCatalogList(); });
-  app.querySelector<HTMLSelectElement>('#catalog-filter')?.addEventListener('change', event => { catalogFilter = (event.target as HTMLSelectElement).value; updateCatalogList(); });
-  app.querySelector<HTMLInputElement>('#music-toggle')?.addEventListener('change', event => { enableAudio(); audio.setMusicEnabled((event.target as HTMLInputElement).checked); });
-  app.querySelector<HTMLInputElement>('#mute-toggle')?.addEventListener('change', event => { enableAudio(); audio.setMuted(!(event.target as HTMLInputElement).checked); });
+  app.querySelector<HTMLSelectElement>('#catalog-filter')?.addEventListener('change', event => { catalogFilter = (event.target as HTMLSelectElement).value; playOperation('navigate'); updateCatalogList(); });
+  app.querySelector<HTMLInputElement>('#music-toggle')?.addEventListener('change', event => { enableAudio(); audio.setMusicEnabled((event.target as HTMLInputElement).checked); audio.playOperation('confirm'); });
+  app.querySelector<HTMLInputElement>('#mute-toggle')?.addEventListener('change', event => { enableAudio(); audio.setMuted(!(event.target as HTMLInputElement).checked); audio.playOperation('confirm'); });
   app.querySelector<HTMLInputElement>('#volume')?.addEventListener('input', event => { enableAudio(); audio.setVolume(Number((event.target as HTMLInputElement).value)); });
   app.querySelector<HTMLSelectElement>('#presentation-mode')?.addEventListener('change', event => {
     presentationMode = (event.target as HTMLSelectElement).value === 'tempo' ? 'tempo' : 'full';
     writeStored('chaos-line.presentation', presentationMode);
+    playOperation('confirm');
   });
   app.querySelector('.modal-backdrop')?.addEventListener('click', event => { if (event.target === event.currentTarget) closeModal(); });
   app.querySelector<HTMLFormElement>('#restart-form')?.addEventListener('submit', event => {
@@ -333,26 +340,28 @@ function chooseCell(cellId: string): void {
   const person = selected();
   if (!person) {
     const occupant = state.passengers.find(passenger => passenger.cellId === cellId);
-    if (occupant) { selectedId = occupant.id; render(); }
-    else notify('乗客を選択してください。');
+    if (occupant) { selectedId = occupant.id; playOperation('select'); render(); }
+    else { playOperation('invalid'); notify('乗客を選択してください。'); }
     return;
   }
   if (person.cellId === cellId) {
     const occupants = state.passengers.filter(passenger => passenger.cellId === cellId);
     selectedId = occupants[(occupants.findIndex(passenger => passenger.id === selectedId) + 1) % occupants.length].id;
     focusRequest = `[data-cell="${cellId}"]`;
+    playOperation('select');
     render();
     return;
   }
   const next = person.cellId ? move(state, person.id, cellId) : place(state, person.id, cellId);
-  if (next === state) { notify('配置できません。空き面積・荷物の置き場所・移動回数を確認してください。'); return; }
+  if (next === state) { playOperation('invalid'); notify('配置できません。空き面積・荷物の置き場所・移動回数を確認してください。'); return; }
   state = next;
   if (!person.cellId && !state.finished) startBoarding(person, cellId);
   hoveredCell = null;
   selectedId = state.waiting[0]?.id ?? null;
   focusRequest = selectedId ? `[data-person="${selectedId}"]` : `[data-cell="${cellId}"]`;
   enableAudio();
-  audio.playPlacement();
+  if (person.cellId) audio.playOperation('move');
+  else audio.playPlacement();
   notify('配置しました。');
   render();
   if (zoom) { const target = cells.find(cell => cell.id === cellId)!; centerBoardAt(target.x + target.width / 2); }
@@ -372,33 +381,36 @@ function moveFocus(cellId: string, key: string): void {
   candidates.sort((a, b) => Math.abs(a.x - current.x) - Math.abs(b.x - current.x));
   const next = candidates[0];
   if (!next) return;
+  playOperation('navigate');
   highlightCell(next.id);
   app.querySelectorAll<HTMLElement>('[data-cell]').forEach(element => element.tabIndex = element.dataset.cell === next.id ? 0 : -1);
   app.querySelector<HTMLElement>(`[data-cell="${next.id}"]`)?.focus();
 }
 async function handleAction(action: string): Promise<void> {
   if (action.startsWith('perk-')) {
-    state = choosePerk(state, action.slice('perk-'.length));
-    if (!state.perk) return;
+    const next = choosePerk(state, action.slice('perk-'.length));
+    if (next === state || !next.perk) return;
+    state = next;
     modal = null;
     selectedId = state.waiting[0]?.id ?? null;
-    enableAudio();
+    playOperation('confirm');
     render();
     return;
   }
   if (action.startsWith('jump-')) {
     const door = Number(action.slice(5));
+    playOperation('navigate');
     resetCamera();
     zoom = true;
     render();
     centerBoardAt([3220, 7740, 12260, 16780][door]);
     return;
   }
-  if (action === 'skip') { animationToken++; evaluationQueue.length = 0; finishAnimation(true); return; }
+  if (action === 'skip') { playOperation('cancel'); animationToken++; evaluationQueue.length = 0; finishAnimation(true); return; }
   if (action === 'close') { closeModal(); return; }
   if (action === 'depart') {
-    if (state.waiting.length || animating || state.finished) return;
-    enableAudio();
+    if (state.waiting.length || animating || state.finished || (state.station > 0 && !state.perk)) return;
+    playOperation('depart');
     boarding.clear();
     state = depart(state);
     selectedId = state.waiting[0]?.id ?? null;
@@ -416,8 +428,10 @@ async function handleAction(action: string): Promise<void> {
       if (!state.passengers.some(person => person.id === id)) boarding.delete(id);
     } selectedId = state.waiting[0]?.id ?? null; render(); return;
   }
-  if (action === 'zoom') { resetCamera(); zoom = !zoom; render(); return; }
+  if (action === 'zoom') { playOperation('navigate'); resetCamera(); zoom = !zoom; render(); return; }
+  if (action === 'upgrade' && state.station === 0) return;
   if (['help', 'catalog', 'sound', 'restart', 'result', 'upgrade'].includes(action)) {
+    playOperation('navigate');
     modal = action as typeof modal;
     render();
     focusModal();
@@ -616,7 +630,7 @@ function finishAnimation(immediate = false): void {
   if (immediate || reducedMotion.matches) resetCamera();
   else moveCamera({ ...fullCamera }, 900, undefined, true);
   activeEventOffset = 0;
-  audio.playFinish();
+  if (!immediate) audio.playFinish();
   if (state.finished) {
     const best = Number(readStored('chaos-line.best-score')) || 0;
     writeStored('chaos-line.best-score', String(Math.max(best, state.score)));
@@ -639,14 +653,15 @@ function restart(seed: string): void {
   hoveredCell = null;
   animating = false;
   activeWave = null;
-  modal = 'upgrade';
-  enableAudio();
+  modal = null;
+  playOperation('confirm');
   render();
   focusModal();
 }
 
 // ===== SECTION: Dialogs and event discovery =====
 function renderUpgrade(): string {
+  if (state.station === 0) return '';
   const acquired = state.buffs.length ? `<details class="acquired-buffs"><summary>取得済みバフ ${state.buffs.length}</summary><p class="dialog-note">効果は合算。ストレス追加は最大48、向かいの通路への追加は最大35。</p><ul>${state.buffs.map(buff => `<li><strong>${escape(buff.name)}</strong><span>${escape(buff.description)}</span></li>`).join('')}</ul></details>` : '';
   if (state.perk) return `${state.perk.kind === 'special' ? `<p>${escape(state.perk.name)}</p><p class="dialog-note">${escape(state.perk.description)}</p>` : ''}${acquired}`;
   return `<div class="upgrade-cards">${perkChoices(state.seed, state.station, state.buffs).map(choice => {
@@ -742,7 +757,7 @@ function renderModal(): string {
     body = renderUpgrade();
   } else if (modal === 'help') {
     title = '遊び方';
-    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>各停車駅で特殊駒1枚とバフ2枚から1つ選びます。バフは終点まで重なります。配置すると反応が確定し、ストレスが伝播します。全員を配置したら発車できます。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">車内のストレスとトラブルを増やしていきます。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
+    body = `<ol class="help-steps"><li>乗車待ちの乗客を選び、空き区画へ配置します。扉際は2人推奨、3人では過密になります。盤面の色は現在のストレスの分布を示します。</li><li>2駅目から、各停車駅で特殊駒1枚とバフ2枚から1つ選びます。バフは終点まで重なります。配置すると反応が確定し、ストレスが伝播します。全員を配置したら発車できます。</li><li>ストレス80以上の乗客から隣接する乗客へ25ずつ伝播します。伝播で条件が揃うとトラブルが成立します。</li></ol><p class="dialog-note">車内のストレスとトラブルを増やしていきます。全7駅・6区間。終着到着時、または混雑率200%・配置先がなくなると終了します。荷物付きの乗客は本体1マスと通路0.5マスを使います。着席時は前の通路、立席時は隣の通路を確保します。</p><div class="help-callout"><div class="help-portraits">${Object.keys(portraits).map(species => `<span class="help-species">${personIcon({ species } as Passenger)}${species}</span>`).join('')}</div><p>顔と衣服で種族を識別できます。バーはストレス、「荷」は荷物、「↓」は次駅での降車です。斜線は荷物が使う通路です。</p></div><details class="keyboard-help"><summary>キーボード操作</summary><p>Tabで領域移動、矢印で区画移動、Enterで配置、Escで選択解除。選択解除後、車内区画でEnterを押すと乗客を選択できます。同じ区画でEnterを押すと乗客を切り替えます。</p></details>`;
   } else if (modal === 'catalog') {
     title = 'トラブル図鑑';
     body = `<p class="dialog-note">通常${eventDefinitions.filter(event => !event.rare).length}種・特殊${eventDefinitions.filter(event => event.rare).length}種。連鎖でストレスが80以上になった乗客を含むと成立します。</p><div class="catalog-controls"><input id="catalog-search" placeholder="名前・条件で探す" aria-label="トラブルを検索" value="${escape(search)}"><select id="catalog-filter" aria-label="図鑑の絞り込み"><option value="all" ${catalogFilter === 'all' ? 'selected' : ''}>すべて</option><option value="normal" ${catalogFilter === 'normal' ? 'selected' : ''}>通常</option><option value="rare" ${catalogFilter === 'rare' ? 'selected' : ''}>特殊</option><option value="found" ${catalogFilter === 'found' ? 'selected' : ''}>発見済み</option><option value="new" ${catalogFilter === 'new' ? 'selected' : ''}>未発見</option></select></div><div class="catalog-list">${catalogCards()}</div>`;
@@ -757,7 +772,7 @@ function renderModal(): string {
     title = state.finished === 'terminal' ? '終着駅に到着' : state.finished === 'capacity' ? '混雑率200%で終了' : state.finished ? '運行結果' : '車内の状況';
     body = `<div class="result-hero"><p class="eyebrow">${escape(chaos.label)}</p><strong>${chaos.total}<small>件のトラブル</small></strong><p>${state.station + 1}駅目 · ${stations[state.station]}</p></div><div class="result-stats"><div><b>${chaos.types}</b>種類</div><div><b>${chaos.sectors}<small>/4</small></b>広がった区画</div><div><b>${chaos.maxChain}</b>最大連鎖</div><div><b>${chaos.rare}</b>特殊トラブル</div></div>${chaos.mainCategory ? `<p class="dialog-note">多かったトラブル · ${escape(chaos.mainCategory)}</p>` : ''}<details class="run-history" open><summary>トラブル履歴 ${chaos.total}件</summary><ol class="event-log run-event-log">${state.eventLedger.map(event => `<li><span><small>${stations[event.station ?? 0]} · ${event.wave}連鎖</small><b>${escape(event.name)}</b></span>${event.rare ? '<b class="rare-mark">特殊</b>' : ''}</li>`).join('') || '<li>まだトラブルは起きていません。</li>'}</ol></details><details class="result-numbers"><summary>集計詳細</summary><p>内部カオス値 ${state.score.toLocaleString()} · 通常 ${chaos.events}件 · 特殊 ${chaos.rare}件</p></details><p class="dialog-note">シード ${escape(state.seed)}</p><div class="modal-actions"><button class="secondary-button" data-action="catalog">図鑑を見る</button>${state.finished ? '<button class="primary-button" data-action="same-seed">同じシードで再挑戦</button>' : '<button class="primary-button" data-action="close">車内へ戻る</button>'}</div>`;
   }
-  return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header class="modal-header"><h2 id="modal-title">${title}</h2>${modal === 'upgrade' && !state.perk ? '' : '<button class="close-button" data-action="close" aria-label="閉じる">×</button>'}</header>${body}</section></div>`;
+  return `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header class="modal-header"><h2 id="modal-title">${title}</h2>${modal === 'upgrade' && state.station > 0 && !state.perk ? '' : '<button class="close-button" data-action="close" aria-label="閉じる">×</button>'}</header>${body}</section></div>`;
 }
 function catalogCards(): string {
   const normalized = search.trim().toLocaleLowerCase();
@@ -765,13 +780,13 @@ function catalogCards(): string {
   return filtered.length ? filtered.map(event => `<article class="catalog-card ${event.rare ? 'rare' : ''} ${discovered.has(event.id) ? 'discovered' : ''}"><div class="catalog-card-top"><h3>${escape(event.name)}</h3><b>${event.points}</b></div><p>${escape(event.description)}</p><footer><span>${event.rare ? '特殊' : event.category}</span><span>${discovered.has(event.id) ? '発見済み' : '未発見'}</span></footer></article>`).join('') : '<p class="empty-catalog">条件に合うトラブルはありません。</p>';
 }
 function updateCatalogList(): void { const list = app.querySelector('.catalog-list'); if (list) list.innerHTML = catalogCards(); }
-function closeModal(): void { if (modal === 'upgrade' && !state.perk) return; modal = null; render(); app.querySelector<HTMLButtonElement>('[data-action="help"]')?.focus(); }
+function closeModal(): void { if (!modal || (modal === 'upgrade' && state.station > 0 && !state.perk)) return; playOperation('cancel'); modal = null; render(); app.querySelector<HTMLButtonElement>('[data-action="help"]')?.focus(); }
 function focusModal(): void { app.querySelector<HTMLElement>('.modal button, .modal input')?.focus(); }
 app.addEventListener('click', event => {
   const action = (event.target as Element).closest<HTMLElement>('[data-action]')?.dataset.action;
   if (action === 'same-seed') restart(state.seed);
-  if (action === 'random-seed') { const input = app.querySelector<HTMLInputElement>('#seed-input'); if (input) input.value = freshSeed(); }
-  if (action === 'audio-retry') enableAudio();
+  if (action === 'random-seed') { const input = app.querySelector<HTMLInputElement>('#seed-input'); if (input) { input.value = freshSeed(); playOperation('navigate'); } }
+  if (action === 'audio-retry') playOperation('confirm');
 });
 document.addEventListener('pointerup', () => { pointerActive = false; lastBoardInput = performance.now(); });
 document.addEventListener('pointercancel', () => { pointerActive = false; });

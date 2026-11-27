@@ -60,6 +60,37 @@ sounds = {
     'rare.wav': layer(1.9, [(0,impact(.72,1.3),.9,0),(.08,bloom(220,1.7),.65,-.25),(.16,bloom(329.63,1.5),.5,.25),(.24,bloom(440,1.4),.35,-.1)],.22),
     'finish.wav': layer(1.65, [(0,impact(.83),.8,0),(.045,bloom(146.83,1.5),.6,-.15),(.12,bloom(220,1.4),.5,.15),(.195,bloom(349.23,1.3),.35,0)],.18),
 }
+# Construct the original bank first so its event-noise sequence stays identical.
+# The replacement door and UI layers have their own deterministic noise stream.
+rng = np.random.default_rng(270312)
+
+
+def air(duration, release=.19):
+    t = np.arange(round(duration*RATE))/RATE
+    noise = rng.normal(0, 1, len(t))
+    # Broad, softened airflow with rumble removed; no pitched electronic oscillator.
+    breath = np.convolve(noise, np.ones(5)/5, 'same')
+    breath -= np.convolve(noise, np.ones(61)/61, 'same')
+    envelope = (1-np.exp(-t/0.018)) * np.exp(-np.maximum(0,t-.055)/release)
+    return breath * envelope * np.minimum(1, (duration-t)/.06)
+
+
+sounds.update({
+    'place.wav': layer(.58, [(0,air(.52),.8,-.08),
+        (.035,air(.45,.14),.22,.24),
+        (.38,modal(.17,[(138,.16,.035),(374,.09,.025)],.008),.5,0)],.065),
+    'ui-select.wav': layer(.14, [(0,modal(.13,[(289,.32,.025),(731,.1,.016)],.02),.7,0)],.06),
+    'ui-slide.wav': layer(.22, [(0,air(.2,.06),.35,-.2),
+        (.075,modal(.13,[(215,.23,.033),(543,.1,.025)],.012),.55,.2)],.07),
+    'ui-confirm.wav': layer(.32, [(0,modal(.22,[(174,.34,.045),(435,.13,.055)],.018),.7,0),
+        (.065,modal(.22,[(348,.18,.06),(696,.07,.035)],.01),.45,.1)],.1),
+    'ui-cancel.wav': layer(.2, [(0,modal(.15,[(330,.25,.03),(779,.08,.018)],.016),.55,.1),
+        (.06,modal(.13,[(165,.3,.027),(391,.07,.025)],.012),.65,-.1)],.05),
+    'ui-invalid.wav': layer(.28, [(0,modal(.2,[(97,.3,.04),(253,.12,.026)],.018),.7,-.1),
+        (.09,modal(.17,[(92,.26,.035),(249,.1,.022)],.018),.6,.1)],.05),
+    'ui-depart.wav': layer(.72, [(0,air(.56,.23),.55,-.16),
+        (.3,modal(.36,[(104,.3,.075),(216,.13,.055),(571,.04,.04)],.018),.6,.16)],.11),
+})
 metrics = []
 for name, signal in sounds.items():
     assert np.isfinite(signal).all() and np.max(np.abs(signal)) < .8
@@ -72,9 +103,9 @@ for name, signal in sounds.items():
                     'peak': round(float(np.max(np.abs(signal))),4),
                     'rms': round(float(np.sqrt(np.mean(signal**2))),4)})
 credits = json.loads((ROOT/'credits.json').read_text())
-credits['effects'] = 'Original layered damped wood and metal resonators, body impacts, rising harmonic blooms, deterministic transients, and short stereo room tails. No external samples.'
+credits['effects'] = 'Original layered damped wood and metal resonators, body impacts, rising harmonic blooms, filtered pneumatic airflow, mechanical UI clicks, and short stereo room tails. No external samples.'
 credits['files'] = ['night-express.ogg', *sounds.keys()]
-credits['effectsGenerator'] = 'scripts/generate-effects.py; fixed seed 270311; 22050 Hz / stereo / 16-bit PCM'
+credits['effectsGenerator'] = 'scripts/generate-effects.py; fixed seeds 270311 (events) and 270312 (air and UI); 22050 Hz / stereo / 16-bit PCM'
 credits['effectsValidation'] = metrics
 (ROOT/'credits.json').write_text(json.dumps(credits, ensure_ascii=False, indent=2)+'\n')
 print(json.dumps(metrics, indent=2))

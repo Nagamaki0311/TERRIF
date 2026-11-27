@@ -9,9 +9,25 @@ const AUDIO_FILES = {
   cutin: 'cutin.wav',
   rare: 'rare.wav',
   finish: 'finish.wav',
+  select: 'ui-select.wav',
+  slide: 'ui-slide.wav',
+  confirm: 'ui-confirm.wav',
+  cancel: 'ui-cancel.wav',
+  invalid: 'ui-invalid.wav',
+  depart: 'ui-depart.wav',
 } as const;
 
 type SoundName = keyof typeof AUDIO_FILES;
+export type AudioOperation = 'select' | 'move' | 'confirm' | 'cancel' | 'navigate' | 'invalid' | 'depart';
+const OPERATION_CUES: Record<AudioOperation, readonly [SoundName, number, number]> = {
+  select: ['select', 0.3, 1],
+  move: ['slide', 0.34, 0.9],
+  confirm: ['confirm', 0.36, 1],
+  cancel: ['cancel', 0.27, 1],
+  navigate: ['slide', 0.24, 1.08],
+  invalid: ['invalid', 0.32, 1],
+  depart: ['depart', 0.4, 1],
+};
 const AUDIO_FILE_COUNT = Object.keys(AUDIO_FILES).length;
 interface AudioSettings {
   muted: boolean;
@@ -49,6 +65,7 @@ export class GameAudio {
   private loading: Promise<void> | null = null;
   private enabled = false;
   private playbackGeneration = 0;
+  private pendingGesture: { kind: AudioOperation | 'placement'; at: number } | null = null;
 
   get muted(): boolean { return this.settings.muted; }
   get musicEnabled(): boolean { return this.settings.musicEnabled; }
@@ -72,10 +89,15 @@ export class GameAudio {
     this.enabled = true;
     this.applyVolume();
     this.startMusic();
+    const pending = this.pendingGesture;
+    this.pendingGesture = null;
+    // Keep only a recent final gesture; a slow/retried download must not replay history.
+    if (pending && performance.now() - pending.at < 1000) this.playFeedback(pending.kind);
   }
 
   setMuted(muted: boolean): void {
     this.settings.muted = muted;
+    if (muted) this.pendingGesture = null;
     this.persist();
     this.applyVolume();
   }
@@ -95,7 +117,22 @@ export class GameAudio {
   }
 
   playPlacement(): void {
-    this.playSample('placement', 0.43, 1);
+    this.playFeedback('placement');
+  }
+
+  playOperation(kind: AudioOperation): void {
+    this.playFeedback(kind);
+  }
+
+  private playFeedback(kind: AudioOperation | 'placement'): void {
+    if (this.settings.muted) return;
+    if (!this.enabled) {
+      this.pendingGesture = { kind, at: performance.now() };
+      return;
+    }
+    this.pendingGesture = null;
+    if (kind === 'placement') this.playSample('placement', 0.52, 1);
+    else this.playSample(...OPERATION_CUES[kind]);
   }
 
   playWave(depth: number, events: number, rare = false): void {
@@ -125,6 +162,7 @@ export class GameAudio {
   /** Cancels queued accents too, so skipping a chain cannot leave late sounds. */
   stop(): void {
     this.playbackGeneration++;
+    this.pendingGesture = null;
     this.stopMusic();
     for (const source of this.voices.keys()) {
       try { source.stop(); } catch { /* A completed source has already stopped. */ }
